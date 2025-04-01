@@ -137,6 +137,8 @@ export const useUserStore = defineStore('user', {
       critDamage: 2, // 暴击伤害倍率
       recoveryTime: 60, // 复活时间
     }),
+    updateInterval: 1000, // 更新间隔（毫秒）
+    timer: 0, // 定时器ID
   }),
   actions: {
     // majorRealmsName
@@ -269,6 +271,19 @@ export const useUserStore = defineStore('user', {
     stopBattle() {
       // 停止战斗逻辑
       console.log('停止战斗')
+    },
+    startUpdate() {
+      if (this.timer == 0) this.timer = setInterval(this.updateTick, this.updateInterval)
+    },
+    stopUpdate() {
+      clearInterval(this.timer)
+      this.timer = 0
+    },
+
+    // 挂机逻辑
+    updateTick() {
+      this.qiSystem.currentQi += this.qiSystem.autoGainPerSec * this.qiSystem.concentrationFactor
+      this.qiSystem.lastUpdateTime += this.updateInterval
     },
   },
   persist: true,

@@ -1,28 +1,24 @@
 // src/router/index.ts
 import { createRouter, createWebHistory } from 'vue-router'
 import CultivateView from '@/views/CultivateView.vue'
-import HomeView from '@/views/HomeView.vue'
+import BattleView from '@/views/BattleView.vue'
 
 const routes = [
   {
     path: '/',
-    name: 'home',
-    component: HomeView  // 关键配置项[1](@ref)
-  },
-  {
-    path: '/cultivate',
     name: 'cultivate',
     component: CultivateView,
-    meta: {
-      requiresSpirit: 1000  // 修炼所需灵气值
-    }
-  }
+  },
+  {
+    path: '/battle',
+    name: 'battle',
+    component: BattleView,
+  },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
 })
-
 
 export default router

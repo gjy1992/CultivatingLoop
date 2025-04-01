@@ -42,11 +42,6 @@
         </button>
       </div>
     </div>
-
-    <!-- 添加一个返回按钮 -->
-    <div class="back-button" @click="$router.back()">
-      <button>返回</button>
-    </div>
   </div>
 </template>
 
@@ -83,28 +78,9 @@ const elementNames = {
   unusedPoints: '未使用',
 }
 
-const updateInterval = 1000 * 1 // 每秒钟更新环境状态
-
 // 手动吸收灵气方法
 const absorbQi = () => {
   player.qiSystem.currentQi += player.qiSystem.concentrationFactor * 10 // Example logic
-}
-
-// 生命周期钩子[6](@ref)
-let timer: number
-onMounted(() => {
-  timer = setInterval(updateEnvironment, updateInterval)
-})
-
-onUnmounted(() => {
-  clearInterval(timer)
-})
-
-// 方法定义
-const updateEnvironment = () => {
-  // 此处可添加月相算法逻辑
-  player.qiSystem.currentQi += player.qiSystem.autoGainPerSec * player.qiSystem.concentrationFactor
-  player.qiSystem.lastUpdateTime += updateInterval
 }
 </script>
 
