@@ -4,31 +4,84 @@
     <div class="main-content">
       <div class="party-info">
         <h3>己方信息</h3>
-        <div v-for="(ally, index) in party" :key="index">
-          {{ ally.name }} - HP: {{ ally.hp }} / MP: {{ ally.mp }}
+        <div v-for="(ally, index) in battleSystem.allies" :key="index">
+          <span v-if="index === 1"
+            ><strong>{{ ally.metadata.name }}</strong></span
+          >
+          <span v-else>{{ ally.metadata.name }}</span> - HP:
+          {{ Math.round(ally.current.health.current) }} / MP:
+          {{ Math.round(ally.current.mp.current) }}
           <div class="hp-bar">
-            <div class="hp-bar-fill" :style="{ width: (ally.hp / 100) * 100 + '%' }"></div>
+            <div
+              class="hp-bar-fill"
+              :style="{
+                width: (ally.current.health.current / ally.current.health.max) * 100 + '%',
+              }"
+            ></div>
+          </div>
+          <div class="action-bar">
+            <div
+              class="action-bar-fill"
+              :style="{
+                width: (ally.actionBar.value / 5) * 100 + '%',
+              }"
+            ></div>
+          </div>
+          <div class="buffs">
+            <span
+              v-for="(buff, buffIndex) in ally.buffs"
+              :key="buffIndex"
+              class="buff"
+              :title="buff.description"
+            >
+              {{ buff }}
+            </span>
           </div>
         </div>
       </div>
 
       <div class="enemy-info">
         <h3>敌方信息</h3>
-        <div v-for="(enemy, index) in enemies" :key="index">
-          {{ enemy.name }} - LV: {{ enemy.level }}
+        <div v-for="(enemy, index) in battleSystem.enemies" :key="index">
+          {{ enemy.metadata.name }} - LV: {{ enemy.metadata.strength }} - HP:
+          {{ Math.round(enemy.current.health.current) }}
+          <div class="hp-bar">
+            <div
+              class="hp-bar-fill"
+              :style="{
+                width: (enemy.current.health.current / enemy.current.health.max) * 100 + '%',
+              }"
+            ></div>
+          </div>
+          <div class="action-bar">
+            <div
+              class="action-bar-fill"
+              :style="{
+                width: (enemy.actionBar.value / 5) * 100 + '%',
+              }"
+            ></div>
+          </div>
+          <div class="buffs">
+            <span
+              v-for="(buff, buffIndex) in enemy.buffs"
+              :key="buffIndex"
+              class="buff"
+              :title="buff.description"
+            >
+              {{ buff }}
+            </span>
+          </div>
         </div>
       </div>
 
       <div class="battle-info">
         <h3>战斗信息</h3>
-        <div>回合数：{{ turn }} 回</div>
-        <div>战斗状态：{{ battleStatus }}</div>
       </div>
 
       <div class="main-display">
         <h3>主要信息</h3>
-        <div>经验值：{{ exp }}/100</div>
-        <div>掉落物品：{{ dropItems.join(', ') }}</div>
+        <div>当前地图：{{ mapData.name }}</div>
+        <div>可能掉落物品：{{ mapData.drops.join(',') }}</div>
       </div>
     </div>
 
@@ -36,7 +89,12 @@
     <div class="right-sidebar">
       <div class="preview">
         <h3>战斗日志</h3>
-        <div>下一个事件：{{ previewEvent }}</div>
+        <div class="log">
+          <!-- 遍历combatMgr.battleLog数组，显示每一条日志 -->
+          <div v-for="(log, index) in combatMgr.battleLog" :key="index">
+            {{ log }}
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -44,7 +102,8 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useUserStore } from '@/stores/user'
+import { combatMgr, useUserStore } from '@/stores/user'
+import AdventureMapList from '@/AdvMap'
 
 const player = useUserStore()
 
@@ -53,27 +112,9 @@ const realmProgress = computed(() => {
   return '■'.repeat(progress) + '□'.repeat(9 - progress)
 })
 
-// 模拟数据
-const currentTime = ref('12:00')
-const gold = ref(5000)
-const breedingFarm = ref(3)
-const demonGirls = ref(8)
-const cityLevel = ref(5)
-const backpack = ref({ items: ['剑', '药水', '防具'] })
-const party = ref([
-  { name: '剑士', hp: 100, mp: 20 },
-  { name: '法师', hp: 80, mp: 50 },
-])
-const enemies = ref([
-  { name: '哥布林', level: 3 },
-  { name: '史莱姆', level: 1 },
-])
-const turn = ref(15)
-const battleStatus = ref('进行中')
-const exp = ref(85)
-const dropItems = ref(['金币', '药草'])
-const team = ref({ leader: { name: '勇者' }, members: ['弓箭手', '牧师'] })
-const previewEvent = ref('遭遇精英怪')
+//test
+const mapData = AdventureMapList['地图1']
+const battleSystem = player.enterAdvMap(mapData)
 </script>
 
 <style scoped>
@@ -158,9 +199,47 @@ h3 {
   margin-top: 5px;
 }
 
+.action-bar {
+  width: 100%;
+  height: 10px;
+  background: #555;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-top: 5px;
+}
+
 .hp-bar-fill {
   height: 100%;
   background: #ff4d4d;
   transition: width 0.3s ease;
+}
+
+.action-bar-fill {
+  height: 100%;
+  background: #49abf1;
+  transition: width 0.3s ease;
+}
+
+.buffs {
+  display: flex;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.buff {
+  padding: 2px 6px;
+  background: #4caf50;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.log {
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 10px;
+  background: #333;
+  border-radius: 4px;
 }
 </style>

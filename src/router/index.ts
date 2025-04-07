@@ -2,6 +2,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import CultivateView from '@/views/CultivateView.vue'
 import BattleView from '@/views/BattleView.vue'
+import DebugView from '@/views/DebugView.vue'
 
 const routes = [
   {
@@ -13,6 +14,12 @@ const routes = [
     path: '/battle',
     name: 'battle',
     component: BattleView,
+  },
+  //调试
+  {
+    path: '/debug',
+    name: 'debug',
+    component: DebugView,
   },
 ]
 

@@ -55,7 +55,7 @@ import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import { useAppStore } from '@/stores/app'
-import { useUserStore } from '@/stores/user'
+import { useUserStore, combatMgr } from '@/stores/user'
 
 // 类型定义
 type GameAction = {
@@ -73,7 +73,6 @@ export default defineComponent({
 
   setup() {
     const router = useRouter()
-    const updateInterval = 1000 * 1 // 每秒钟更新环境状态
 
     const player = useUserStore()
 
@@ -87,6 +86,8 @@ export default defineComponent({
       { label: '秘境探索', path: '/battle' },
       { label: '炼丹制药', path: '/alchemy', require: () => false },
       { label: '功法参悟', path: '/comprehend', require: () => false },
+      //调试
+      { label: '调试', path: '/debug' },
     ]
 
     // 计算属性[2,5](@ref)
@@ -96,19 +97,23 @@ export default defineComponent({
     })
 
     // 生命周期钩子[6](@ref)
-    let timer: number
     onMounted(() => {
-      timer = setInterval(updateEnvironment, updateInterval)
-      player.startUpdate()
+      player.timer = setInterval(updateEnvironment, player.updateInterval)
+      combatMgr.battleTimer = setInterval(() => {
+        combatMgr.battleUpdate()
+      }, combatMgr.battleInterval)
     })
 
     onUnmounted(() => {
-      clearInterval(timer)
+      clearInterval(player.timer)
+      clearInterval(combatMgr.battleTimer)
+      combatMgr.stopBattle()
     })
 
     // 方法定义
     const updateEnvironment = () => {
       currentTime = dayjs().format('HH:mm')
+      player.updateTick()
     }
 
     const handleAction = (action: GameAction) => {
