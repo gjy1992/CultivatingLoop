@@ -65,7 +65,7 @@ const BuffList: { [key: string]: Buff } = {
     duration: 60,
     priority: 2,
     effectFunc(attributes: CombatAttributes) {
-      attributes.health.current -= attributes.health.max * 0.01 * this.level
+      attributes.health.current = Math.round(attributes.health.current - attributes.health.max * 0.01 * this.level);
     },
   },
 }

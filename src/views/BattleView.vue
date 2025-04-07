@@ -129,7 +129,6 @@ const battleSystem = player.enterAdvMap(mapData)
   display: flex;
   flex-direction: row;
   width: 100%;
-  height: 100vh;
   background: #1a1a1a;
   color: #fff;
   font-family: Arial, sans-serif;

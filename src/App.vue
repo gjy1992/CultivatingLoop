@@ -1,51 +1,50 @@
 <template>
   <div id="app">
-    <!-- 主界面容器 -->
-    <div class="game-container">
+
+    <el-header class="head">
       <!-- 动态环境状态栏 -->
-      <div class="status-bar">
-        【{{ currentTime }}·{{ lunarPhase }}】灵气浓度
-        {{ player.qiSystem.concentrationFactor }}
-      </div>
+      【{{ currentTime }}·{{ lunarPhase }}】灵气浓度
+      {{ player.qiSystem.concentrationFactor }}
+    </el-header>
+    <!-- 主界面容器 -->
+    <div class="game-zone">
+      <el-aside class="game-container">
+        <!-- 角色状态面板 -->
+        <el-card title="信息" class="character-panel" hoverable>
+          <!-- 头像和姓名 -->
+          <div class="user-info">
+            <el-avatar :size="25" :src="circleUrl" />
+            {{ player.name }}
+          </div>
 
-      <!-- 角色状态面板 -->
-      <section class="character-panel">
-        <h2>≡ {{ player.name }} 修炼日志 ≡</h2>
-        <div class="progress">
-          境界：[{{ realmProgress }}]
           <br />
-          {{ player.majorRealmsName() }}境 {{ player.minorRealmsName() }}
-        </div>
-        <div class="attributes">
-          <p>
-            气血：{{ player.combat.health.current }}/{{ player.combat.health.max }}
-            <br />
-            真气：{{ player.combat.mp.current }}/{{ player.combat.mp.max }}
-          </p>
-        </div>
-      </section>
 
-      <!-- 主操作面板 -->
-      <nav class="action-menu">
-        <div
-          v-for="(action, index) in mainActions"
-          :key="index"
-          class="menu-item"
-          @click="handleAction(action)"
-          :class="{ disabled: isActionDisabled(action) }"
-        >
-          ▶ {{ action.label }}
-        </div>
-      </nav>
+          <div class="realms-status">
+            <p>{{ player.majorRealmsName() }}境 {{ player.minorRealmsName() }}</p>
+            <el-progress :show-text="false" :stroke-width="20" striped striped-flow :duration="10"
+              :percentage="realmProgress" :color="customColors"></el-progress>
+          </div>
 
-      <!-- 系统功能入口 -->
-      <div class="system-menu">
-        <span @click="toggleMenu('settings')">⚙️ 系统设置</span>
-        <span @click="toggleMenu('archive')">📂 轮回日志</span>
-        <button @click="player.Reset()">重置</button>
-      </div>
+        </el-card>
+
+        <!-- 主操作面板 -->
+        <nav class="action-menu">
+          <div v-for="(action, index) in mainActions" :key="index" class="menu-item" @click="handleAction(action)"
+            :class="{ disabled: isActionDisabled(action) }">
+            ▶ {{ action.label }}
+          </div>
+        </nav>
+      </el-aside>
+      <router-view class="game-display" />
     </div>
-    <router-view />
+    <!-- 系统功能入口 -->
+    <el-footer class="foot">
+      <span @click="toggleMenu('settings')">⚙️ 系统设置</span>
+      <span @click="toggleMenu('archive')">📂 轮回日志</span>
+      <el-button @click="player.Reset()">重置</el-button>
+    </el-footer>
+
+
   </div>
 </template>
 
@@ -56,6 +55,7 @@ import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import { useAppStore } from '@/stores/app'
 import { useUserStore, combatMgr } from '@/stores/user'
+import { ELHeader, ELFooter, ELAside, ELAvatar, ElButton, ELProgress, ELCard } from 'element-plus'
 
 // 类型定义
 type GameAction = {
@@ -76,7 +76,7 @@ export default defineComponent({
 
     const player = useUserStore()
 
-    let currentTime = dayjs().format('HH:mm')
+    let currentTime = ref(dayjs().format('HH:mm'))
     let lunarPhase = '新月' // 月相状态
     // 这里可以添加月相算法逻辑
 
@@ -90,11 +90,44 @@ export default defineComponent({
       { label: '调试', path: '/debug' },
     ]
 
+    const customColors = [
+      { color: '#f56c6c', percentage: 20 },
+      { color: '#e6a23c', percentage: 40 },
+      { color: '#5cb87a', percentage: 60 },
+      { color: '#1989fa', percentage: 80 },
+      { color: '#6f7ad3', percentage: 100 },
+    ]
+
+    const customColorMethod = (percentage: number) => {
+      if (percentage < 30) {
+        return '#909399'
+      }
+      if (percentage < 70) {
+        return '#e6a23c'
+      }
+      return '#67c23a'
+    }
+    const increase = () => {
+      percentage.value += 10
+      if (percentage.value > 100) {
+        percentage.value = 100
+      }
+    }
+    const decrease = () => {
+      percentage.value -= 10
+      if (percentage.value < 0) {
+        percentage.value = 0
+      }
+    }
+
     // 计算属性[2,5](@ref)
     const realmProgress = computed(() => {
-      const progress = player.realmStatus.minorRealm
-      return '■'.repeat(progress) + '□'.repeat(9 - progress)
-    })
+      // 确保除数不为零，避免出现 NaN
+      if (player.realmStatus.requiredQi === 0) {
+        return 0;
+      }
+      return Math.round((player.qiSystem.currentQi / player.realmStatus.requiredQi) * 100);
+    });
 
     // 生命周期钩子[6](@ref)
     onMounted(() => {
@@ -112,7 +145,7 @@ export default defineComponent({
 
     // 方法定义
     const updateEnvironment = () => {
-      currentTime = dayjs().format('HH:mm')
+      currentTime.value = dayjs().format('HH:mm')
       player.updateTick()
     }
 
@@ -147,6 +180,7 @@ export default defineComponent({
       player,
       mainActions,
       realmProgress,
+      customColors,
       handleAction,
       isActionDisabled,
       toggleMenu,
@@ -159,26 +193,75 @@ export default defineComponent({
 #app {
   width: 100vw;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
 }
+
+.game-zone {
+  display: flex;
+  height: calc(100vh - 80px);
+  width: 100%;
+  overflow: hidden;
+  background-color: #616161;
+}
+
+.game-container {
+  border-radius: 25px;
+  position: sticky;
+  flex: 0 0 20%;
+  height: calc(100vh - 80px);
+  font-family: 'Consolas', monospace;
+  background-color: #f0f0f0;
+}
+
+.game-display {
+  flex: 1;
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+
+router-view {
+  background-color: #f0f0f0;
+  flex: 1;
+}
+
+.head {
+  height: 40px;
+  background: #0070c0;
+  z-index: 1000;
+  color: #f0f0f0;
+}
+
+.foot {
+
+  height: 40px;
+  width: 100%;
+  background: #0070c0;
+  justify-content: space-around;
+}
+
 .game-container {
   font-family: 'Consolas', monospace;
   margin: 0;
-  padding: 5px;
-  width: 300px;
-  min-width: 300px;
-  max-width: 300px;
-}
-
-.status-bar {
-  color: #7cb342;
-  margin-bottom: 1rem;
+  padding: 40px 40px 40px 40px;
+  width: 100%;
+  min-width: auto;
+  max-width: none;
 }
 
 .character-panel {
-  border: 1px dashed #616161;
+  border: 1px;
   padding: 1rem;
   margin-bottom: 1.5rem;
+}
+
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .menu-item {

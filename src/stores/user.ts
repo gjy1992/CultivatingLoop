@@ -93,8 +93,8 @@ class BattleSystem {
     }
     // 更新血量和蓝量
     for (const unit of [...this.allies, ...this.enemies]) {
-      unit.current.health.current += unit.current.health.regenPerSec * dt
-      unit.current.mp.current += unit.current.mp.regenPerSec * dt
+      unit.current.health.current = Math.round(unit.current.health.current + unit.current.health.regenPerSec * dt);
+      unit.current.mp.current = Math.round(unit.current.mp.current + unit.current.mp.regenPerSec * dt);
     }
     // 更新行动条进度
     const allUnits = [...this.allies, ...this.enemies]
@@ -439,9 +439,12 @@ export const useUserStore = defineStore('user', {
         } else if (r === 0) {
           this.realmStatus.breakthroughAttempts++ // 增加突破失败次数
         } else {
-          alert('你死了！')
+          alert('渡劫失败，你反而跌落了一个境界')
+          if (this.realmStatus.majorRealm > 0) {
+            this.realmStatus.majorRealm-- // 减少大境界
+          }
+          this.realmStatus.minorRealm = 1 // 重置小境界
           this.realmStatus.breakthroughAttempts = 0 // 重置突破失败次数
-          this.Reset()
         }
       }
       // 计算当前突破所需灵气

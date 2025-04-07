@@ -14,21 +14,21 @@
         <p>灵气浓度：{{ Math.round(player.qiSystem.concentrationFactor * 100) }}%</p>
         <p>当前灵气：{{ Math.round(player.qiSystem.currentQi) }}</p>
         <p>突破需要：{{ player.realmStatus.requiredQi }}</p>
-        <button @click="absorbQi">吸收灵气</button>
-        <button
+        <el-button @click="absorbQi">吸收灵气</el-button>
+        <el-button
           @click="player.LevelUp()"
           :disabled="!player.CanLevelUp() || player.realmStatus.minorRealm == 9"
           class="breakthrough-btn"
         >
           突破小境界
-        </button>
-        <button
+        </el-button>
+        <el-button
           @click="player.LevelUp()"
           :disabled="!player.CanLevelUp() || player.realmStatus.minorRealm < 9"
           class="breakthrough-btn"
         >
           突破大境界
-        </button>
+        </el-button>
       </div>
 
       <!-- 五行灵根显示 -->
@@ -98,6 +98,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useUserStore } from '../stores/user' // 假设使用Pinia状态管理
 import type { Constitution, ConstitutionData } from '@/Constitution'
 import constitutionLists from '@/Constitution'
+import { ElButton } from 'element-plus'
 
 // 境界状态
 const player = useUserStore()
@@ -141,6 +142,7 @@ const constitutionHint = (v: ConstitutionData) => {
 
 <style scoped>
 .cultivate-container {
+  background-color: #f0f0f0;
   width: 100%;
   max-width: 800px;
   margin: 2rem auto;
