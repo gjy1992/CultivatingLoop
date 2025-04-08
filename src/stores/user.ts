@@ -95,12 +95,10 @@ class BattleSystem {
     }
     // 更新血量和蓝量
     for (const unit of [...this.allies, ...this.enemies]) {
-      unit.current.health.current = Math.round(
-        unit.current.health.current + unit.current.health.regenPerSec * dt,
-      )
-      unit.current.mp.current = Math.round(
-        unit.current.mp.current + unit.current.mp.regenPerSec * dt,
-      )
+      unit.current.health.current =
+        unit.current.health.current + unit.current.health.regenPerSec * dt
+
+      unit.current.mp.current = unit.current.mp.current + unit.current.mp.regenPerSec * dt
     }
     // 更新行动条进度
     const allUnits = [...this.allies, ...this.enemies]
@@ -116,6 +114,11 @@ class BattleSystem {
         // 执行技能或攻击逻辑
         this.executeAction(unit)
       }
+    }
+    // 更新回血量和蓝量
+    for (const unit of [...this.allies, ...this.enemies]) {
+      unit.original.health.current = unit.current.health.current
+      unit.original.mp.current = unit.current.mp.current
     }
   }
   executeAction(unit: BattleAttributes) {
@@ -591,32 +594,18 @@ export const useUserStore = defineStore('user', {
           this.qiSystem.concentrationFactor *
           (this.updateInterval / 1000)
       }
-      this.processingActions.forEach((a) => {
-        const action = ActionsMap[a]
-        const actionData = this.actionsStatus[a]
-        if (actionData.pending) {
-          actionData.cooldownRemaining -= this.updateInterval / 1000 // 更新冷却时间
-          if (actionData.cooldownRemaining <= 0) {
-            //准备再次执行行动，此时要重新检查是否可用
-            if (action.disable && action.disable(this)) {
-              //临时禁用，等待可用时机
-              actionData.cooldownRemaining = 0
-            } else {
-              if (action.cost) action.cost(this)
-              actionData.progress = 0
-              actionData.cooldownRemaining = action.cooldown // 重置冷却时间
-              actionData.pending = false
-            }
-          }
-        } else {
-          actionData.progress += this.updateInterval / 1000 // 更新进度
-          actionData.cooldownRemaining -= this.updateInterval / 1000 // 更新冷却时间
-          if (actionData.progress >= action.duration) {
-            actionData.progress = action.duration
-            if (action.effect) {
-              action.effect(this) // 执行效果
-            }
-            actionData.pending = true
+      // 如果在战斗，那么行动暂停
+      if (combatMgr.currentMap) {
+      } else {
+        // 战斗外五倍回复
+        this.combat.health.current +=
+          ((this.combat.health.regenPerSec * this.updateInterval) / 1000) * 5
+        this.combat.mp.current += ((this.combat.mp.regenPerSec * this.updateInterval) / 1000) * 5
+        this.processingActions.forEach((a) => {
+          const action = ActionsMap[a]
+          const actionData = this.actionsStatus[a]
+          if (actionData.pending) {
+            actionData.cooldownRemaining -= this.updateInterval / 1000 // 更新冷却时间
             if (actionData.cooldownRemaining <= 0) {
               //准备再次执行行动，此时要重新检查是否可用
               if (action.disable && action.disable(this)) {
@@ -629,11 +618,33 @@ export const useUserStore = defineStore('user', {
                 actionData.pending = false
               }
             }
-          } else if (actionData.cooldownRemaining <= 0) {
-            actionData.cooldownRemaining = this.updateInterval / 1000
+          } else {
+            actionData.progress += this.updateInterval / 1000 // 更新进度
+            actionData.cooldownRemaining -= this.updateInterval / 1000 // 更新冷却时间
+            if (actionData.progress >= action.duration) {
+              actionData.progress = action.duration
+              if (action.effect) {
+                action.effect(this) // 执行效果
+              }
+              actionData.pending = true
+              if (actionData.cooldownRemaining <= 0) {
+                //准备再次执行行动，此时要重新检查是否可用
+                if (action.disable && action.disable(this)) {
+                  //临时禁用，等待可用时机
+                  actionData.cooldownRemaining = 0
+                } else {
+                  if (action.cost) action.cost(this)
+                  actionData.progress = 0
+                  actionData.cooldownRemaining = action.cooldown // 重置冷却时间
+                  actionData.pending = false
+                }
+              }
+            } else if (actionData.cooldownRemaining <= 0) {
+              actionData.cooldownRemaining = this.updateInterval / 1000
+            }
           }
-        }
-      })
+        })
+      }
       this.qiSystem.lastUpdateTime += this.updateInterval
     },
 
