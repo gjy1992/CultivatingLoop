@@ -65,6 +65,15 @@ interface BattleAttributes {
   metadata: EnemyData
 }
 
+interface ResoucesSystem {
+  WarehouseLevel: number, //仓库等级 
+  money: number, //铜币 资源默认值为-1，方便在系统未开启的时候不显示
+  magicStone: number, //灵石 无存储量
+  minHerbs: number, //普通草药，卖钱 存储量为仓库等级*1000
+  midHerbs: number, //中级草药，灵气池、宗门任务 存储量为仓库等级*100
+  maxHerbs: number,  //高级草药，炼丹 存储量为仓库等级*10
+}
+
 class BattleSystem {
   // 友方
   allies: BattleAttributes[] = [] // 友方
@@ -307,7 +316,14 @@ export { combatMgr } // 导出战斗管理器实例
 export const useUserStore = defineStore('user', {
   state: () => ({
     name: '无名修士',
-    money: 0,
+    resources: reactive<ResoucesSystem>({
+      WarehouseLevel: 1, //仓库等级
+      money: -1, //铜币 资源默认值为-1，方便在系统未开启的时候不显示
+      magicStone: -1, //灵石 无存储量
+      minHerbs: -1, //普通草药，卖钱 存储量为仓库等级*1000
+      midHerbs: -1, //中级草药，灵气池、宗门任务 存储量为仓库等级*100
+      maxHerbs: -1,  //高级草药，炼丹 存储量为仓库等级*10
+    }),
     realmStatus: reactive<RealmStatus>({
       majorRealm: 1, // 大境界（1-7对应文档境界体系）
       minorRealm: 1, // 小境界（1-9）
@@ -526,7 +542,7 @@ export const useUserStore = defineStore('user', {
       // 停止战斗(如果正在战斗的话)
       this.stopBattle()
 
-      this.money = Math.max(0, Math.round(this.money * 0.1)) // 金钱重置
+      this.resources.money = Math.max(0, Math.round(this.resources.money * 0.1)) // 金钱重置
       if (this.constitutions.find((a) => a.name == '轮回圣体') === undefined) {
         this.realmStatus.majorRealm = 1 // 大境界（1-7对应文档境界体系）
         this.realmStatus.minorRealm = 1 // 小境界（1-9）
@@ -552,6 +568,13 @@ export const useUserStore = defineStore('user', {
       let prob = 0.1
       this.constitutions = this.constitutions.filter(() => Math.random() < prob)
 
+      // 资源重置
+      this.resources.WarehouseLevel = 1 //仓库等级
+      this.resources.money = -1 //铜币 资源默认值为-1，方便在系统未开启的时候不显示
+      this.resources.magicStone = -1 //灵石 无存储量
+      this.resources.minHerbs = -1 //普通草药，卖钱 存储量为仓库等级*1000
+      this.resources.midHerbs = -1 //中级草药，灵气池、宗门任务 存储量为仓库等级*100
+      this.resources.maxHerbs = -1  //高级草药，炼丹 存储量为仓库等级*10
       // 战斗属性重置
       this.combat.health.max = 100
       this.combat.health.current = 100

@@ -36,7 +36,7 @@ const ActionsMap: Record<string, Action> = {
       user.combat.health.current -= 1
     },
     effect: (user) => {
-      user.money += Math.random() * 10 + 10
+      user.resources.money += Math.random() * 10 + 10
     },
     disable: (user) => {
       return user.combat.health.current <= 1

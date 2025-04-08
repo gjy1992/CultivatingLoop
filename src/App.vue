@@ -4,6 +4,23 @@
       <!-- 动态环境状态栏 -->
       【{{ currentTime }}·{{ lunarPhase }}】灵气浓度
       {{ player.qiSystem.concentrationFactor }}
+
+      <el-tabs v-model="activeTab" type="card" class="action-tabs" @tab-click="onTabClick">
+        <el-tab-pane v-for="(action, index) in mainActions" :key="index" :label="action.label"
+          :name="action.path || index.toString()" :disabled="isActionDisabled(action)" />
+      </el-tabs>
+
+      <el-dropdown trigger="click">
+        <span class="system-menu">
+          ⚙️ 系统设置
+        </span>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item @click="toggleMenu('archive')">📂 轮回日志</el-dropdown-item>
+            <el-dropdown-item divided @click="player.Reset()">🔁 重置轮回</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </el-header>
     <!-- 主界面容器 -->
     <div class="game-zone">
@@ -15,44 +32,30 @@
             <el-avatar :size="25" />
             {{ player.name }}
           </div>
-
           <br />
-
           <div class="realms-status">
             <p>{{ player.majorRealmsName() }}境 {{ player.minorRealmsName() }}</p>
-            <el-progress
-              :show-text="false"
-              :stroke-width="20"
-              striped
-              striped-flow
-              :duration="10"
-              :percentage="realmProgress"
-              :color="customColors"
-            ></el-progress>
+            <el-progress :show-text="false" :stroke-width="20" striped striped-flow :duration="10"
+              :percentage="realmProgress" :color="customColors"></el-progress>
           </div>
         </el-card>
 
-        <!-- 主操作面板 -->
-        <nav class="action-menu">
-          <div
-            v-for="(action, index) in mainActions"
-            :key="index"
-            class="menu-item"
-            @click="handleAction(action)"
-            :class="{ disabled: isActionDisabled(action) }"
-          >
-            ▶ {{ action.label }}
+
+        <el-card v-if="resourceList.length > 0" title="资源" class="character-resource" hoverable>
+          <h2>资源</h2>
+          <el-divider border-style="dashed" />
+          <div v-for="(item, index) in resourceList" :key="index" class="user-resource">
+            {{ item.icon }} {{ item.name }} {{ item.value }}
           </div>
-        </nav>
+        </el-card>
+
+
       </el-aside>
+
+      <el-divider direction="vertical" border-style="dashed" />
+      <!-- 主操作面板 -->
       <router-view class="game-display" />
     </div>
-    <!-- 系统功能入口 -->
-    <el-footer class="foot">
-      <span @click="toggleMenu('settings')">⚙️ 系统设置</span>
-      <span @click="toggleMenu('archive')">📂 轮回日志</span>
-      <el-button @click="player.Reset()">重置</el-button>
-    </el-footer>
   </div>
 </template>
 
@@ -63,8 +66,6 @@ import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import { useAppStore } from '@/stores/app'
 import { useUserStore, combatMgr } from '@/stores/user'
-import { ElHeader, ElFooter, ElAside, ElAvatar, ElButton, ElProgress, ElCard } from 'element-plus'
-
 // 类型定义
 type GameAction = {
   label: string
@@ -136,6 +137,18 @@ export default defineComponent({
       player.updateTick()
     }
 
+    const activeTab = ref(mainActions[0].path || '0') // 默认激活第一个可用标签
+
+    const onTabClick = (tab: any) => {
+      const clickedAction = mainActions.find(
+        (action) => (action.path || mainActions.indexOf(action).toString()) === tab.paneName
+      )
+      if (clickedAction && !isActionDisabled(clickedAction)) {
+        handleAction(clickedAction)
+      }
+    }
+
+
     const handleAction = (action: GameAction) => {
       if (action.path && !isActionDisabled(action)) {
         router.push(action.path)
@@ -161,6 +174,44 @@ export default defineComponent({
       // Add your menu toggle logic here
     }
 
+    const resourceList = computed(() => {
+      const { resources } = player
+      const warehouseLevel = resources.WarehouseLevel
+
+      return [
+        {
+          icon: '🪙',
+          name: '铜币',
+          value: Math.round(resources.money),
+          visible: resources.money > 0,
+        },
+        {
+          icon: '💎',
+          name: '灵石',
+          value: resources.magicStone,
+          visible: resources.magicStone > 0,
+        },
+        {
+          icon: '🌿',
+          name: '药草',
+          value: `${resources.minHerbs}/${warehouseLevel * 1000}`,
+          visible: resources.minHerbs > 0,
+        },
+        {
+          icon: '🪻',
+          name: '灵草',
+          value: `${resources.midHerbs}/${warehouseLevel * 100}`,
+          visible: resources.midHerbs > 0,
+        },
+        {
+          icon: '🪷',
+          name: '仙草',
+          value: `${resources.maxHerbs}/${warehouseLevel * 10}`,
+          visible: resources.maxHerbs > 0,
+        },
+      ].filter(item => item.visible)
+    })
+
     return {
       currentTime,
       lunarPhase,
@@ -168,9 +219,12 @@ export default defineComponent({
       mainActions,
       realmProgress,
       customColors,
+      activeTab,
+      onTabClick,
       handleAction,
       isActionDisabled,
       toggleMenu,
+      resourceList
     }
   },
 })
@@ -183,19 +237,26 @@ export default defineComponent({
   flex-direction: column;
 }
 
+.system-menu {
+  color: #f0f0f0; /* 改成你想要的颜色，比如白色 */
+  cursor: pointer;
+  font-weight: bold;
+}
+
 .game-zone {
   display: flex;
-  height: calc(100vh - 80px);
+  height: calc(100vh - 40px);
   width: 100%;
   overflow: hidden;
   background-color: #616161;
 }
 
 .game-container {
-  border-radius: 25px;
+  margin: 20px;
+  border-radius: 15px;
   position: sticky;
   flex: 0 0 20%;
-  height: calc(100vh - 80px);
+  height: calc(100vh - 40px);
   font-family: 'Consolas', monospace;
   background-color: #f0f0f0;
 }
@@ -214,17 +275,43 @@ router-view {
 }
 
 .head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   height: 40px;
   background: #0070c0;
   z-index: 1000;
   color: #f0f0f0;
 }
 
-.foot {
-  height: 40px;
-  width: 100%;
-  background: #0070c0;
-  justify-content: space-around;
+.action-tabs {
+  margin-top: 6px;
+  margin-bottom: 6px;
+  background-color: transparent;
+  /* 让整体无底色，与蓝背景融合 */
+}
+
+.head ::v-deep(.el-tabs__header) {
+  margin: 0;
+  padding: 0;
+  height: auto;
+  line-height: normal;
+}
+
+.head ::v-deep(.el-tabs__nav) {
+  align-items: center;
+}
+
+.action-tabs ::v-deep(.el-tabs__item) {
+  color: #e3f2fd;
+  font-weight: bold;
+  transition: background-color 0.3s, color 0.3s;
+  padding: 8px 12px;
+}
+
+.action-tabs ::v-deep(.el-tabs__item.is-active) {
+  background-color: #f0f0f0;
+  color: #0070c0;
 }
 
 .game-container {
@@ -250,7 +337,6 @@ router-view {
 
 .menu-item {
   cursor: pointer;
-  padding: 8px;
   transition: background 0.3s;
 }
 

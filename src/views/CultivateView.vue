@@ -144,9 +144,8 @@ const constitutionHint = (v: ConstitutionData) => {
 .cultivate-container {
   background-color: #f0f0f0;
   width: 100%;
-  max-width: 800px;
-  margin: 2rem auto;
-  padding: 1rem;
+  max-width: 100%;
+  border-radius: 15px;
   display: flex;
   flex-direction: row;
   align-items: center;

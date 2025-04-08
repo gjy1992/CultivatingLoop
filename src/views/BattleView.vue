@@ -126,10 +126,13 @@ const battleSystem = player.enterAdvMap(mapData)
 }
 
 .battle-view {
+  background-color: #f0f0f0;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 15px;
   display: flex;
   flex-direction: row;
   width: 100%;
-  background: #1a1a1a;
   color: #fff;
   font-family: Arial, sans-serif;
 }

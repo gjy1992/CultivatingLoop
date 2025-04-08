@@ -55,7 +55,10 @@ const isActionDisabled = (action: string) => {
 
 <style scoped>
 .actions-view {
-  padding: 20px;
+  background-color: #f0f0f0;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 15px;
 }
 
 .header {
