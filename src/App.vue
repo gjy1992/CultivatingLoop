@@ -1,6 +1,5 @@
 <template>
   <div id="app">
-
     <el-header class="head">
       <!-- 动态环境状态栏 -->
       【{{ currentTime }}·{{ lunarPhase }}】灵气浓度
@@ -13,7 +12,7 @@
         <el-card title="信息" class="character-panel" hoverable>
           <!-- 头像和姓名 -->
           <div class="user-info">
-            <el-avatar :size="25" :src="circleUrl" />
+            <el-avatar :size="25" />
             {{ player.name }}
           </div>
 
@@ -21,16 +20,27 @@
 
           <div class="realms-status">
             <p>{{ player.majorRealmsName() }}境 {{ player.minorRealmsName() }}</p>
-            <el-progress :show-text="false" :stroke-width="20" striped striped-flow :duration="10"
-              :percentage="realmProgress" :color="customColors"></el-progress>
+            <el-progress
+              :show-text="false"
+              :stroke-width="20"
+              striped
+              striped-flow
+              :duration="10"
+              :percentage="realmProgress"
+              :color="customColors"
+            ></el-progress>
           </div>
-
         </el-card>
 
         <!-- 主操作面板 -->
         <nav class="action-menu">
-          <div v-for="(action, index) in mainActions" :key="index" class="menu-item" @click="handleAction(action)"
-            :class="{ disabled: isActionDisabled(action) }">
+          <div
+            v-for="(action, index) in mainActions"
+            :key="index"
+            class="menu-item"
+            @click="handleAction(action)"
+            :class="{ disabled: isActionDisabled(action) }"
+          >
             ▶ {{ action.label }}
           </div>
         </nav>
@@ -43,8 +53,6 @@
       <span @click="toggleMenu('archive')">📂 轮回日志</span>
       <el-button @click="player.Reset()">重置</el-button>
     </el-footer>
-
-
   </div>
 </template>
 
@@ -55,7 +63,7 @@ import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import { useAppStore } from '@/stores/app'
 import { useUserStore, combatMgr } from '@/stores/user'
-import { ELHeader, ELFooter, ELAside, ELAvatar, ElButton, ELProgress, ELCard } from 'element-plus'
+import { ElHeader, ElFooter, ElAside, ElAvatar, ElButton, ElProgress, ElCard } from 'element-plus'
 
 // 类型定义
 type GameAction = {
@@ -83,6 +91,7 @@ export default defineComponent({
     // 主操作列表[4,9](@ref)
     const mainActions: GameAction[] = [
       { label: '闭关修炼', path: '/' },
+      { label: '日常修行', path: '/action' },
       { label: '秘境探索', path: '/battle' },
       { label: '炼丹制药', path: '/alchemy', require: () => false },
       { label: '功法参悟', path: '/comprehend', require: () => false },
@@ -98,36 +107,14 @@ export default defineComponent({
       { color: '#6f7ad3', percentage: 100 },
     ]
 
-    const customColorMethod = (percentage: number) => {
-      if (percentage < 30) {
-        return '#909399'
-      }
-      if (percentage < 70) {
-        return '#e6a23c'
-      }
-      return '#67c23a'
-    }
-    const increase = () => {
-      percentage.value += 10
-      if (percentage.value > 100) {
-        percentage.value = 100
-      }
-    }
-    const decrease = () => {
-      percentage.value -= 10
-      if (percentage.value < 0) {
-        percentage.value = 0
-      }
-    }
-
     // 计算属性[2,5](@ref)
     const realmProgress = computed(() => {
       // 确保除数不为零，避免出现 NaN
       if (player.realmStatus.requiredQi === 0) {
-        return 0;
+        return 0
       }
-      return Math.round((player.qiSystem.currentQi / player.realmStatus.requiredQi) * 100);
-    });
+      return Math.round((player.qiSystem.currentQi / player.realmStatus.requiredQi) * 100)
+    })
 
     // 生命周期钩子[6](@ref)
     onMounted(() => {
@@ -221,7 +208,6 @@ export default defineComponent({
   box-sizing: border-box;
 }
 
-
 router-view {
   background-color: #f0f0f0;
   flex: 1;
@@ -235,7 +221,6 @@ router-view {
 }
 
 .foot {
-
   height: 40px;
   width: 100%;
   background: #0070c0;
@@ -256,7 +241,6 @@ router-view {
   padding: 1rem;
   margin-bottom: 1.5rem;
 }
-
 
 .user-info {
   display: flex;

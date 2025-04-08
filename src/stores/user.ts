@@ -7,6 +7,8 @@ import EnemyList from '@/enemyData'
 import type { AdventureMapData } from '@/AdvMap'
 import AdventureMapList from '@/AdvMap'
 import constitutionLists, { type Constitution, type ConstitutionData } from '@/Constitution'
+import ActionsMap from '@/actions'
+import type { Action, ActionsData } from '@/actions'
 
 const Param = {
   Q0: 200, // 炼体境第一层基础值（建议100~500）
@@ -93,8 +95,12 @@ class BattleSystem {
     }
     // 更新血量和蓝量
     for (const unit of [...this.allies, ...this.enemies]) {
-      unit.current.health.current = Math.round(unit.current.health.current + unit.current.health.regenPerSec * dt);
-      unit.current.mp.current = Math.round(unit.current.mp.current + unit.current.mp.regenPerSec * dt);
+      unit.current.health.current = Math.round(
+        unit.current.health.current + unit.current.health.regenPerSec * dt,
+      )
+      unit.current.mp.current = Math.round(
+        unit.current.mp.current + unit.current.mp.regenPerSec * dt,
+      )
     }
     // 更新行动条进度
     const allUnits = [...this.allies, ...this.enemies]
@@ -298,7 +304,7 @@ export { combatMgr } // 导出战斗管理器实例
 export const useUserStore = defineStore('user', {
   state: () => ({
     name: '无名修士',
-    cultivation: 0,
+    money: 0,
     realmStatus: reactive<RealmStatus>({
       majorRealm: 1, // 大境界（1-7对应文档境界体系）
       minorRealm: 1, // 小境界（1-9）
@@ -345,8 +351,13 @@ export const useUserStore = defineStore('user', {
       critDamage: 2, // 暴击伤害倍率
       recoveryTime: 60, // 复活时间
     }),
-    updateInterval: 1000, // 更新间隔（毫秒）
+    timer: 0, // 定时器
+    updateInterval: 500, // 更新间隔（毫秒）
     constitutions: reactive<ConstitutionData[]>([]), //体质
+    actions: reactive<string[]>([]), // 可用技能
+    processingActions: reactive<string[]>([]), // 正在处理的技能
+    maxProcessingActions: 1, // 最大正在处理技能数量
+    actionsStatus: reactive<Record<string, ActionsData>>({}),
   }),
   actions: {
     // majorRealmsName
@@ -512,6 +523,7 @@ export const useUserStore = defineStore('user', {
       // 停止战斗(如果正在战斗的话)
       this.stopBattle()
 
+      this.money = Math.max(0, Math.round(this.money * 0.1)) // 金钱重置
       if (this.constitutions.find((a) => a.name == '轮回圣体') === undefined) {
         this.realmStatus.majorRealm = 1 // 大境界（1-7对应文档境界体系）
         this.realmStatus.minorRealm = 1 // 小境界（1-9）
@@ -554,6 +566,12 @@ export const useUserStore = defineStore('user', {
       this.combat.critRate = 0.1 // 暴击率
       this.combat.critDamage = 2 // 暴击伤害倍率
       this.combat.recoveryTime = 60 // 复活时间
+
+      this.updateActions() // 更新可用技能
+      this.processingActions = [] // 清空正在处理的技能
+      this.actionsStatus = {}
+      this.timer = 0 // 定时器
+      this.updateInterval = 500
     },
     // 停止战斗
     stopBattle() {
@@ -566,14 +584,85 @@ export const useUserStore = defineStore('user', {
       let coef = 1
       if (this.constitutions.find((a) => a.name == '天灵根') !== undefined) coef += 2
       if (this.constitutions.find((a) => a.name == '先天道体') !== undefined) coef += 1
-      this.qiSystem.currentQi +=
-        coef * this.qiSystem.autoGainPerSec * this.qiSystem.concentrationFactor
+      if (this.realmStatus.majorRealm > 1) {
+        this.qiSystem.currentQi +=
+          coef *
+          this.qiSystem.autoGainPerSec *
+          this.qiSystem.concentrationFactor *
+          (this.updateInterval / 1000)
+      }
+      this.processingActions.forEach((a) => {
+        const action = ActionsMap[a]
+        const actionData = this.actionsStatus[a]
+        if (actionData.pending) {
+          actionData.cooldownRemaining -= this.updateInterval / 1000 // 更新冷却时间
+          if (actionData.cooldownRemaining <= 0) {
+            if (action.cost) action.cost(this)
+            actionData.progress = 0
+            actionData.cooldownRemaining = action.cooldown // 重置冷却时间
+            actionData.pending = false
+          }
+        } else {
+          actionData.progress += this.updateInterval / 1000 // 更新进度
+          if (actionData.progress >= action.duration) {
+            if (action.effect) {
+              action.effect(this) // 执行效果
+            }
+            actionData.pending = true
+          }
+          actionData.cooldownRemaining -= this.updateInterval / 1000 // 更新冷却时间
+          if (actionData.cooldownRemaining <= 0) {
+            if (action.cost) action.cost(this)
+            actionData.progress = 0
+            actionData.cooldownRemaining = action.cooldown // 重置冷却时间
+            actionData.pending = false
+          }
+        }
+      })
       this.qiSystem.lastUpdateTime += this.updateInterval
     },
 
     enterAdvMap(mapData: AdventureMapData) {
       combatMgr.startAdventure(mapData, this.name, this.combat) // 开始冒险战斗
       return combatMgr.battleSystem
+    },
+
+    updateActions() {
+      const actions: string[] = []
+      Object.entries(ActionsMap).forEach(([k, a]) => {
+        if (
+          a.minmajorRealm <= this.realmStatus.majorRealm &&
+          a.maxmajorRealm >= this.realmStatus.majorRealm
+        ) {
+          if (a.unlock && !a.unlock(this)) return
+          actions.push(a.name)
+        }
+      })
+      this.actions = actions
+      this.processingActions = this.processingActions.filter((a) => actions.includes(a))
+      this.processingActions.forEach((a) => {
+        if (!(a in this.actionsStatus))
+          this.actionsStatus[a] = { progress: 0, cooldownRemaining: 0, pending: false }
+      })
+      Object.entries(this.actionsStatus).forEach(([k, v]) => {
+        if (!actions.includes(k)) delete this.actionsStatus[k]
+      })
+    },
+
+    handleAction(action: string) {
+      const a = ActionsMap[action]
+      if (!(action in this.actionsStatus))
+        this.actionsStatus[action] = { progress: 0, cooldownRemaining: 0, pending: false }
+      if (this.actionsStatus[action].cooldownRemaining > 0) {
+        return
+      }
+      this.processingActions.push(action)
+      if (a.cost) a.cost(this)
+      this.actionsStatus[action].progress = 0
+      this.actionsStatus[action].cooldownRemaining = a.cooldown
+      if (this.processingActions.length > this.maxProcessingActions) {
+        this.processingActions.shift()
+      }
     },
   },
   persist: true,

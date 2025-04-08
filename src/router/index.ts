@@ -3,12 +3,18 @@ import { createRouter, createWebHistory } from 'vue-router'
 import CultivateView from '@/views/CultivateView.vue'
 import BattleView from '@/views/BattleView.vue'
 import DebugView from '@/views/DebugView.vue'
+import ActionsView from '@/views/ActionsView.vue'
 
 const routes = [
   {
     path: '/',
     name: 'cultivate',
     component: CultivateView,
+  },
+  {
+    path: '/action',
+    name: 'action',
+    component: ActionsView,
   },
   {
     path: '/battle',
