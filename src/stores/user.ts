@@ -597,25 +597,40 @@ export const useUserStore = defineStore('user', {
         if (actionData.pending) {
           actionData.cooldownRemaining -= this.updateInterval / 1000 // 更新冷却时间
           if (actionData.cooldownRemaining <= 0) {
-            if (action.cost) action.cost(this)
-            actionData.progress = 0
-            actionData.cooldownRemaining = action.cooldown // 重置冷却时间
-            actionData.pending = false
+            //准备再次执行行动，此时要重新检查是否可用
+            if (action.disable && action.disable(this)) {
+              //临时禁用，等待可用时机
+              actionData.cooldownRemaining = 0
+            } else {
+              if (action.cost) action.cost(this)
+              actionData.progress = 0
+              actionData.cooldownRemaining = action.cooldown // 重置冷却时间
+              actionData.pending = false
+            }
           }
         } else {
           actionData.progress += this.updateInterval / 1000 // 更新进度
+          actionData.cooldownRemaining -= this.updateInterval / 1000 // 更新冷却时间
           if (actionData.progress >= action.duration) {
+            actionData.progress = action.duration
             if (action.effect) {
               action.effect(this) // 执行效果
             }
             actionData.pending = true
-          }
-          actionData.cooldownRemaining -= this.updateInterval / 1000 // 更新冷却时间
-          if (actionData.cooldownRemaining <= 0) {
-            if (action.cost) action.cost(this)
-            actionData.progress = 0
-            actionData.cooldownRemaining = action.cooldown // 重置冷却时间
-            actionData.pending = false
+            if (actionData.cooldownRemaining <= 0) {
+              //准备再次执行行动，此时要重新检查是否可用
+              if (action.disable && action.disable(this)) {
+                //临时禁用，等待可用时机
+                actionData.cooldownRemaining = 0
+              } else {
+                if (action.cost) action.cost(this)
+                actionData.progress = 0
+                actionData.cooldownRemaining = action.cooldown // 重置冷却时间
+                actionData.pending = false
+              }
+            }
+          } else if (actionData.cooldownRemaining <= 0) {
+            actionData.cooldownRemaining = this.updateInterval / 1000
           }
         }
       })
@@ -662,6 +677,17 @@ export const useUserStore = defineStore('user', {
       this.actionsStatus[action].cooldownRemaining = a.cooldown
       if (this.processingActions.length > this.maxProcessingActions) {
         this.processingActions.shift()
+      }
+    },
+
+    cancelAction(action: string) {
+      if (this.processingActions.includes(action)) {
+        this.processingActions.splice(this.processingActions.indexOf(action, 0), 1)
+        if (action in this.actionsStatus) {
+          this.actionsStatus[action].progress = 0
+          this.actionsStatus[action].cooldownRemaining = 0
+          this.actionsStatus[action].pending = false
+        }
       }
     },
   },

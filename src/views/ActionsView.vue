@@ -14,11 +14,10 @@
       <div v-for="action in player.actions" class="action-item">
         <el-button
           type="primary"
-          @click="player.handleAction(action)"
+          @click="handleAction(action)"
           :title="ActionsMap[action].description"
-          :disabled="
-            action in player.actionsStatus && player.actionsStatus[action].cooldownRemaining > 0
-          "
+          :disabled="isActionDisabled(action)"
+          :class="{ 'is-selected': player.processingActions.includes(action) }"
         >
           {{ action }}
         </el-button>
@@ -34,10 +33,24 @@ import type { Constitution, ConstitutionData } from '@/Constitution'
 import constitutionLists from '@/Constitution'
 import { ElButton } from 'element-plus'
 import ActionsMap from '@/actions'
+import { acceptHMRUpdate } from 'pinia'
 
 // 境界状态
 const player = useUserStore()
 player.updateActions()
+
+const handleAction = (action: string) => {
+  if (player.processingActions.includes(action)) player.cancelAction(action)
+  else player.handleAction(action)
+}
+
+const isActionDisabled = (action: string) => {
+  if (player.processingActions.includes(action)) return false
+  return (
+    (ActionsMap[action].disable && ActionsMap[action].disable(player)) ||
+    (action in player.actionsStatus && player.actionsStatus[action].cooldownRemaining > 0)
+  )
+}
 </script>
 
 <style scoped>
@@ -64,5 +77,11 @@ player.updateActions()
 
 .progress-bar {
   flex: 1;
+}
+
+.is-selected {
+  background-color: #d3f9d8;
+  border: 1px solid #a3e635;
+  color: #065f46;
 }
 </style>

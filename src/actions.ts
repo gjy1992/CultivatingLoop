@@ -9,7 +9,8 @@ interface Action {
   maxmajorRealm: number
   cost?: (user: UserStoreType) => void
   effect?: (user: UserStoreType) => void
-  unlock?: (user: UserStoreType) => boolean
+  unlock?: (user: UserStoreType) => boolean //额外解锁条件
+  disable?: (user: UserStoreType) => boolean //因为生命等临时条件不符而禁用
 }
 
 const ActionsMap: Record<string, Action> = {
@@ -37,8 +38,8 @@ const ActionsMap: Record<string, Action> = {
     effect: (user) => {
       user.money += Math.random() * 10 + 10
     },
-    unlock: (user) => {
-      return user.combat.health.current > 1
+    disable: (user) => {
+      return user.combat.health.current <= 1
     },
   },
 }
