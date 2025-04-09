@@ -6,14 +6,17 @@
       {{ player.qiSystem.concentrationFactor }}
 
       <el-tabs v-model="activeTab" type="card" class="action-tabs" @tab-click="onTabClick">
-        <el-tab-pane v-for="(action, index) in mainActions" :key="index" :label="action.label"
-          :name="action.path || index.toString()" :disabled="isActionDisabled(action)" />
+        <el-tab-pane
+          v-for="(action, index) in mainActions"
+          :key="index"
+          :label="action.label"
+          :name="action.path || index.toString()"
+          :disabled="isActionDisabled(action)"
+        />
       </el-tabs>
 
       <el-dropdown trigger="click">
-        <span class="system-menu">
-          ⚙️ 系统设置
-        </span>
+        <span class="system-menu"> ⚙️ 系统设置 </span>
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item @click="toggleMenu('archive')">📂 轮回日志</el-dropdown-item>
@@ -35,11 +38,17 @@
           <br />
           <div class="realms-status">
             <p>{{ player.majorRealmsName() }}境 {{ player.minorRealmsName() }}</p>
-            <el-progress :show-text="false" :stroke-width="20" striped striped-flow :duration="10"
-              :percentage="realmProgress" :color="customColors"></el-progress>
+            <el-progress
+              :show-text="false"
+              :stroke-width="20"
+              striped
+              striped-flow
+              :duration="10"
+              :percentage="realmProgress"
+              :color="customColors"
+            ></el-progress>
           </div>
         </el-card>
-
 
         <el-card v-if="resourceList.length > 0" title="资源" class="character-resource" hoverable>
           <h2>资源</h2>
@@ -48,8 +57,6 @@
             {{ item.icon }} {{ item.name }} {{ item.value }}
           </div>
         </el-card>
-
-
       </el-aside>
 
       <el-divider direction="vertical" border-style="dashed" />
@@ -137,21 +144,24 @@ export default defineComponent({
       player.updateTick()
     }
 
-    const activeTab = ref(mainActions[0].path || '0') // 默认激活第一个可用标签
+    // 响应式菜单状态
+    const appStore = useAppStore()
+    console.log(appStore.activeTab)
+    const activeTab = appStore.activeTab // 默认激活第一个可用标签
 
     const onTabClick = (tab: any) => {
       const clickedAction = mainActions.find(
-        (action) => (action.path || mainActions.indexOf(action).toString()) === tab.paneName
+        (action) => (action.path || mainActions.indexOf(action).toString()) === tab.paneName,
       )
       if (clickedAction && !isActionDisabled(clickedAction)) {
         handleAction(clickedAction)
       }
     }
 
-
     const handleAction = (action: GameAction) => {
       if (action.path && !isActionDisabled(action)) {
         router.push(action.path)
+        appStore.activeTab = action.path
       }
     }
 
@@ -160,7 +170,7 @@ export default defineComponent({
     }
 
     // 响应式菜单状态
-    const appStore = useAppStore()
+
     const activeMenu = ref<MenuType>('none')
 
     const toggleMenu = (menuType: MenuType) => {
@@ -209,7 +219,7 @@ export default defineComponent({
           value: `${resources.maxHerbs}/${warehouseLevel * 10}`,
           visible: resources.maxHerbs > 0,
         },
-      ].filter(item => item.visible)
+      ].filter((item) => item.visible)
     })
 
     return {
@@ -224,7 +234,7 @@ export default defineComponent({
       handleAction,
       isActionDisabled,
       toggleMenu,
-      resourceList
+      resourceList,
     }
   },
 })
@@ -305,7 +315,9 @@ router-view {
 .action-tabs ::v-deep(.el-tabs__item) {
   color: #e3f2fd;
   font-weight: bold;
-  transition: background-color 0.3s, color 0.3s;
+  transition:
+    background-color 0.3s,
+    color 0.3s;
   padding: 8px 12px;
 }
 

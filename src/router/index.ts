@@ -4,6 +4,7 @@ import CultivateView from '@/views/CultivateView.vue'
 import BattleView from '@/views/BattleView.vue'
 import DebugView from '@/views/DebugView.vue'
 import ActionsView from '@/views/ActionsView.vue'
+import MapView from '@/views/MapView.vue'
 
 const routes = [
   {
@@ -15,6 +16,11 @@ const routes = [
     path: '/action',
     name: 'action',
     component: ActionsView,
+  },
+  {
+    path: '/map',
+    name: 'map',
+    component: MapView,
   },
   {
     path: '/battle',

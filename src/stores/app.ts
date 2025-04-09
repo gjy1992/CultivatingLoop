@@ -1,12 +1,14 @@
 // stores/app.ts
 import { defineStore } from 'pinia'
+import { ref } from 'vue'
 
 export const useAppStore = defineStore('app', {
   state: () => ({
+    activeTab: ref('/'),
     sidebar: {
       opened: false,
-      withoutAnimation: false
-    }
+      withoutAnimation: false,
+    },
   }),
   actions: {
     toggleSidebar() {
@@ -14,6 +16,7 @@ export const useAppStore = defineStore('app', {
     },
     closeSidebar() {
       this.sidebar.opened = false
-    }
-  }
+    },
+  },
+  persist: true,
 })

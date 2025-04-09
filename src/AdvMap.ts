@@ -7,6 +7,7 @@ interface AdventureMapData {
   dropProbs: number[] //掉落物品概率
   difficulty: number // 地图平均难度
   levelNum: number //关卡数量
+  preaquisition: string[] // 前置关卡
 }
 
 // 冒险地图列表
@@ -20,6 +21,7 @@ const AdventureMapList: { [key: string]: AdventureMapData } = {
     dropProbs: [0.05, 0.02, 0.01],
     difficulty: 1,
     levelNum: 10,
+    preaquisition: [], // 前置关卡
   },
   地图2: {
     name: '地图2',
@@ -29,6 +31,7 @@ const AdventureMapList: { [key: string]: AdventureMapData } = {
     dropProbs: [0.05, 0.02, 0.01],
     difficulty: 2,
     levelNum: 20,
+    preaquisition: ['地图1'], // 前置关卡
   },
 }
 
