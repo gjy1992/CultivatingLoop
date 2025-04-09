@@ -14,7 +14,7 @@
         <p>灵气浓度：{{ Math.round(player.qiSystem.concentrationFactor * 100) }}%</p>
         <p>当前灵气：{{ Math.round(player.qiSystem.currentQi) }}</p>
         <p>突破需要：{{ player.realmStatus.requiredQi }}</p>
-        <el-button @click="absorbQi">吸收灵气</el-button>
+        <!-- <el-button @click="absorbQi">吸收灵气</el-button> -->
         <el-button
           @click="player.LevelUp()"
           :disabled="!player.CanLevelUp() || player.realmStatus.minorRealm == 9"
