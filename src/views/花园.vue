@@ -7,9 +7,13 @@
         </p>
         <p>{{ slot.description }}</p>
         <p>等级: {{ slot.level }}</p>
-        <span style="display: inline-block; overflow: auto; white-space: nowrap"
-          >剩余时间: {{ formatTime2(slot.remainingTime) }}</span
-        >
+        <span style="display: inline-block; overflow: auto; white-space: nowrap">{{
+          slot.药草 === ''
+            ? ''
+            : slot.remainingTime > 0
+              ? '剩余时间: ' + formatTime2(slot.remainingTime)
+              : '已成熟'
+        }}</span>
         <button @click="handleAction(index)" :disabled="slot.remainingTime > 0">
           {{ slot.药草 === '' ? '种地' : '采摘' }}
         </button>
@@ -27,13 +31,13 @@ import { 药草数据 } from '@/modules/gardenModule'
 export default {
   data() {
     // test
-    useUserStore().gardendata.slots[0] = {
-      name: '空地', // 槽位名称
-      description: '空地',
-      level: 1, // 槽位等级
-      药草: '', // 药草名称
-      remainingTime: 0, // 剩余时间（秒）
-    }
+    // useUserStore().gardendata.slots[0] = {
+    //   name: '空地', // 槽位名称
+    //   description: '空地',
+    //   level: 1, // 槽位等级
+    //   药草: '', // 药草名称
+    //   remainingTime: 0, // 剩余时间（秒）
+    // }
     return {
       player: useUserStore(),
       药草数据: 药草数据,

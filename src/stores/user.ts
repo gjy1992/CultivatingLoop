@@ -113,8 +113,11 @@ class BattleSystem {
     for (const unit of [...this.allies, ...this.enemies]) {
       unit.current.health.current =
         unit.current.health.current + unit.current.health.regenPerSec * dt
-
+      // 限制血量不超过最大值
+      unit.current.health.current = Math.min(unit.current.health.current, unit.current.health.max)
       unit.current.mp.current = unit.current.mp.current + unit.current.mp.regenPerSec * dt
+      // 限制蓝量不超过最大值
+      unit.current.mp.current = Math.min(unit.current.mp.current, unit.current.mp.max)
     }
     // 更新行动条进度
     const allUnits = [...this.allies, ...this.enemies]
@@ -134,7 +137,12 @@ class BattleSystem {
     // 更新回血量和蓝量
     for (const unit of [...this.allies, ...this.enemies]) {
       unit.original.health.current = unit.current.health.current
+      unit.original.health.current = Math.min(
+        unit.original.health.current,
+        unit.original.health.max,
+      )
       unit.original.mp.current = unit.current.mp.current
+      unit.original.mp.current = Math.min(unit.original.mp.current, unit.original.mp.max)
     }
   }
   executeAction(unit: BattleAttributes) {
@@ -598,11 +606,14 @@ export const useUserStore = defineStore('user', {
 
       // 资源重置
       this.resources.WarehouseLevel = 1 //仓库等级
-      this.resources.money = -1 //铜币 资源默认值为-1，方便在系统未开启的时候不显示
-      this.resources.magicStone = -1 //灵石 无存储量
-      this.resources.minHerbs = -1 //普通草药，卖钱 存储量为仓库等级*1000
-      this.resources.midHerbs = -1 //中级草药，灵气池、宗门任务 存储量为仓库等级*100
-      this.resources.maxHerbs = -1 //高级草药，炼丹 存储量为仓库等级*10
+      this.resources.money = 0 //铜币
+      this.resources.magicStoneLow = 0 //下品灵石 无存储量
+      this.resources.magicStoneMid = 0 //中品灵石 无存储量
+      this.resources.magicStoneHigh = 0 //上品灵石 无存储量
+      this.resources.magicStoneTop = 0 //极品灵石 无存储量
+      this.resources.minHerbs = 0 //普通草药，卖钱 存储量为仓库等级*1000
+      this.resources.midHerbs = 0 //中级草药，灵气池、宗门任务 存储量为仓库等级*100
+      this.resources.maxHerbs = 0 //高级草药，炼丹 存储量为仓库等级*10
       // 战斗属性重置
       this.combat.health.max = 100
       this.combat.health.current = 100
@@ -658,7 +669,9 @@ export const useUserStore = defineStore('user', {
         // 战斗外五倍回复
         this.combat.health.current +=
           ((this.combat.health.regenPerSec * this.updateInterval) / 1000) * 5
+        this.combat.health.current = Math.min(this.combat.health.current, this.combat.health.max)
         this.combat.mp.current += ((this.combat.mp.regenPerSec * this.updateInterval) / 1000) * 5
+        this.combat.mp.current = Math.min(this.combat.mp.current, this.combat.mp.max)
         this.processingActions.forEach((a) => {
           const action = ActionsMap[a]
           const actionData = this.actionsStatus[a]
