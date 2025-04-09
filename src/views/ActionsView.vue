@@ -29,10 +29,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useUserStore } from '../stores/user' // 假设使用Pinia状态管理
-import type { Constitution, ConstitutionData } from '@/Constitution'
-import constitutionLists from '@/Constitution'
+import type { Constitution, ConstitutionData } from '@/modules/Constitution'
+import constitutionLists from '@/modules/Constitution'
 import { ElButton } from 'element-plus'
-import ActionsMap from '@/actions'
+import ActionsMap from '@/modules/actions'
 import { acceptHMRUpdate } from 'pinia'
 
 // 境界状态

@@ -1,4 +1,4 @@
-import type { UserStoreType } from './stores/user'
+import type { UserStoreType } from '../stores/user'
 
 interface Action {
   name: string
@@ -16,7 +16,7 @@ interface Action {
 const ActionsMap: Record<string, Action> = {
   打坐: {
     name: '打坐',
-    description: '倾听/感受/思考……',
+    description: '倾听/感受/思考……\n收益：10点灵气',
     duration: 10,
     cooldown: 10,
     minmajorRealm: 0,
@@ -27,7 +27,7 @@ const ActionsMap: Record<string, Action> = {
   },
   跑腿: {
     name: '跑腿',
-    description: '只要996，月入30万不是梦',
+    description: '只要996，月入30万不是梦\n消耗：1点生命值\n收益：10-20铜币',
     duration: 5,
     cooldown: 5,
     minmajorRealm: 0,

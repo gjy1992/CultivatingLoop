@@ -1,4 +1,4 @@
-import type { UserStoreType } from './stores/user'
+import type { UserStoreType } from '../stores/user'
 
 // 先天体质/被动法术，其实都是一样的，是被动效果
 interface Constitution {

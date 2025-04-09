@@ -82,6 +82,7 @@
         <h3>主要信息</h3>
         <div>当前地图：{{ mapData.name }}</div>
         <div>可能掉落物品：{{ mapData.drops.join(',') }}</div>
+        <el-button type="primary" @click="exit()">离开地图</el-button>
       </div>
     </div>
 
@@ -100,21 +101,30 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
 import { combatMgr, useUserStore } from '@/stores/user'
-import AdventureMapList from '@/AdvMap'
+import AdventureMapList from '@/modules/AdvMap'
+import router from '@/router'
 
 const player = useUserStore()
 
-const realmProgress = computed(() => {
-  const progress = player.realmStatus.minorRealm
-  return '■'.repeat(progress) + '□'.repeat(9 - progress)
-})
+if (player.currentBattleMap != '' && !combatMgr.currentMap) {
+  // reset battle data
+  player.enterAdvMap(AdventureMapList[player.currentBattleMap])
+}
+combatMgr.startBattle()
+const battleSystem = combatMgr.battleSystem
+const mapData = combatMgr.currentMap
+// Ensure mapData is not null
+if (!mapData) {
+  throw new Error('mapData is null')
+}
 
-//test
-const mapData = AdventureMapList['地图1']
-const battleSystem = player.enterAdvMap(mapData)
+const exit = () => {
+  player.exitAdvMap()
+  router.push({ path: '/map' })
+}
 </script>
 
 <style scoped>

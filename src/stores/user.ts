@@ -1,14 +1,16 @@
 // src/stores/user.ts
 import { defineStore } from 'pinia'
 import { reactive, ref, type Reactive, type Ref } from 'vue'
-import type { CombatAttributes, Buff } from '../buff'
-import type { EnemyData } from '@/enemyData'
-import EnemyList from '@/enemyData'
-import type { AdventureMapData } from '@/AdvMap'
-import AdventureMapList from '@/AdvMap'
-import constitutionLists, { type Constitution, type ConstitutionData } from '@/Constitution'
-import ActionsMap from '@/actions'
-import type { Action, ActionsData } from '@/actions'
+import type { CombatAttributes, Buff } from '../modules/buff'
+import type { EnemyData } from '@/modules/enemyData'
+import EnemyList from '@/modules/enemyData'
+import type { AdventureMapData } from '@/modules/AdvMap'
+import AdventureMapList from '@/modules/AdvMap'
+import constitutionLists, { type Constitution, type ConstitutionData } from '@/modules/Constitution'
+import ActionsMap from '@/modules/actions'
+import type { Action, ActionsData } from '@/modules/actions'
+import GardenModule from '@/modules/gardenModule'
+import type { GardenData } from '@/modules/gardenModule'
 
 const Param = {
   Q0: 200, // 炼体境第一层基础值（建议100~500）
@@ -66,12 +68,12 @@ interface BattleAttributes {
 }
 
 interface ResoucesSystem {
-  WarehouseLevel: number, //仓库等级 
-  money: number, //铜币 资源默认值为-1，方便在系统未开启的时候不显示
-  magicStone: number, //灵石 无存储量
-  minHerbs: number, //普通草药，卖钱 存储量为仓库等级*1000
-  midHerbs: number, //中级草药，灵气池、宗门任务 存储量为仓库等级*100
-  maxHerbs: number,  //高级草药，炼丹 存储量为仓库等级*10
+  WarehouseLevel: number //仓库等级
+  money: number //铜币 资源默认值为-1，方便在系统未开启的时候不显示
+  magicStone: number //灵石 无存储量
+  minHerbs: number //普通草药，卖钱 存储量为仓库等级*1000
+  midHerbs: number //中级草药，灵气池、宗门任务 存储量为仓库等级*100
+  maxHerbs: number //高级草药，炼丹 存储量为仓库等级*10
 }
 
 class BattleSystem {
@@ -80,7 +82,7 @@ class BattleSystem {
   // 敌方
   enemies: BattleAttributes[] = [] // 敌方
 
-  result: number = -1 // 战斗结果（1-胜利，0-失败，-1-战斗中）
+  result: number = -2 // 战斗结果（1-胜利，0-失败，-1-战斗中, -2等待战斗开始）
 
   // dt: number // 时间间隔（秒）
   update(dt: number) {
@@ -286,7 +288,7 @@ class AdventureCombat {
       },
     }
     this.battleSystem.allies = [player]
-    this.battleSystem.result = -1 // 战斗中
+    this.battleSystem.result = -2 // 等待战斗开始
     // console.log(this.stopBattle)
     //this.battleUpdate()
     // console.log(this.stopBattle)
@@ -294,8 +296,15 @@ class AdventureCombat {
     //this.battleTimer = setInterval(this.battleUpdate, this.battleInterval) // 开始战斗定时器
   }
 
+  startBattle() {
+    // 开始战斗
+    if (this.battleSystem && this.battleSystem.result == -2) {
+      this.battleSystem.result = -1 // 战斗中
+    }
+  }
+
   battleUpdate() {
-    if (this.battleSystem) {
+    if (this.battleSystem && this.battleSystem.result > -2) {
       this.battleSystem.update(this.battleInterval / 1000) // 更新战斗系统
       if (this.battleSystem.result !== -1) {
         console.log('战斗结果:', this.battleSystem.result) // 输出战斗结果
@@ -307,6 +316,7 @@ class AdventureCombat {
   stopBattle() {
     this.battleSystem = null // 清空战斗系统
     this.currentMap = null // 清空当前地图数据
+    this.battleLog = [] // 清空战斗日志
   }
 }
 
@@ -322,7 +332,7 @@ export const useUserStore = defineStore('user', {
       magicStone: -1, //灵石 无存储量
       minHerbs: -1, //普通草药，卖钱 存储量为仓库等级*1000
       midHerbs: -1, //中级草药，灵气池、宗门任务 存储量为仓库等级*100
-      maxHerbs: -1,  //高级草药，炼丹 存储量为仓库等级*10
+      maxHerbs: -1, //高级草药，炼丹 存储量为仓库等级*10
     }),
     realmStatus: reactive<RealmStatus>({
       majorRealm: 1, // 大境界（1-7对应文档境界体系）
@@ -377,6 +387,16 @@ export const useUserStore = defineStore('user', {
     processingActions: reactive<string[]>([]), // 正在处理的技能
     maxProcessingActions: 1, // 最大正在处理技能数量
     actionsStatus: reactive<Record<string, ActionsData>>({}),
+    clearedMaps: reactive<string[]>([]), // 通关的地图记录
+    currentBattleMap: '', // 当前战斗地图
+    gardendata: reactive<GardenData>({
+      slots: [],
+      maxSlots: 9, // 最大槽位数
+      level: 1,
+      experience: 0,
+      experienceToNextLevel: 0,
+      upgradeCost: 0,
+    }), //花园数据
   }),
   actions: {
     // majorRealmsName
@@ -574,7 +594,7 @@ export const useUserStore = defineStore('user', {
       this.resources.magicStone = -1 //灵石 无存储量
       this.resources.minHerbs = -1 //普通草药，卖钱 存储量为仓库等级*1000
       this.resources.midHerbs = -1 //中级草药，灵气池、宗门任务 存储量为仓库等级*100
-      this.resources.maxHerbs = -1  //高级草药，炼丹 存储量为仓库等级*10
+      this.resources.maxHerbs = -1 //高级草药，炼丹 存储量为仓库等级*10
       // 战斗属性重置
       this.combat.health.max = 100
       this.combat.health.current = 100
@@ -598,11 +618,16 @@ export const useUserStore = defineStore('user', {
       this.actionsStatus = {}
       this.timer = 0 // 定时器
       this.updateInterval = 500
+      this.clearedMaps = [] // 通关的地图记录
+      this.currentBattleMap = '' // 当前战斗地图
+
+      GardenModule.reset(this.gardendata) // 重置花园数据
     },
     // 停止战斗
     stopBattle() {
       // 停止战斗逻辑
       combatMgr.stopBattle() // 停止战斗
+      this.currentBattleMap = '' // 清空当前战斗地图
     },
 
     // 挂机逻辑
@@ -617,6 +642,8 @@ export const useUserStore = defineStore('user', {
           this.qiSystem.concentrationFactor *
           (this.updateInterval / 1000)
       }
+      // 花园
+      GardenModule.updateTick(this.updateInterval / 1000, this, this.gardendata)
       // 如果在战斗，那么行动暂停
       if (combatMgr.currentMap) {
       } else {
@@ -672,8 +699,14 @@ export const useUserStore = defineStore('user', {
     },
 
     enterAdvMap(mapData: AdventureMapData) {
+      this.currentBattleMap = mapData.name
       combatMgr.startAdventure(mapData, this.name, this.combat) // 开始冒险战斗
       return combatMgr.battleSystem
+    },
+
+    exitAdvMap() {
+      // TODO 增加失败概率
+      this.stopBattle()
     },
 
     updateActions() {

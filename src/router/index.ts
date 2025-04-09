@@ -5,6 +5,8 @@ import BattleView from '@/views/BattleView.vue'
 import DebugView from '@/views/DebugView.vue'
 import ActionsView from '@/views/ActionsView.vue'
 import MapView from '@/views/MapView.vue'
+import 花园 from '@/views/花园.vue'
+import component from 'element-plus/es/components/tree-select/src/tree-select-option.mjs'
 
 const routes = [
   {
@@ -16,6 +18,11 @@ const routes = [
     path: '/action',
     name: 'action',
     component: ActionsView,
+  },
+  {
+    path: '/garden',
+    name: '花园',
+    component: 花园,
   },
   {
     path: '/map',

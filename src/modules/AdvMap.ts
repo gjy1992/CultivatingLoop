@@ -1,3 +1,5 @@
+import type { UserStoreType } from '../stores/user'
+
 // 每个冒险地图的战斗
 interface AdventureMapData {
   name: string // 地图名称
@@ -8,6 +10,7 @@ interface AdventureMapData {
   difficulty: number // 地图平均难度
   levelNum: number //关卡数量
   preaquisition: string[] // 前置关卡
+  unlock?: (user: UserStoreType) => boolean //额外解锁条件
 }
 
 // 冒险地图列表

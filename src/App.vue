@@ -73,11 +73,14 @@ import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import { useAppStore } from '@/stores/app'
 import { useUserStore, combatMgr } from '@/stores/user'
+import type { UserStoreType } from '@/stores/user'
+
 // 类型定义
 type GameAction = {
   label: string
   path?: string
-  require?: () => boolean
+  show?: (user: UserStoreType) => boolean
+  enable?: (user: UserStoreType) => boolean
   cost?: number
 }
 
@@ -97,15 +100,16 @@ export default defineComponent({
     // 这里可以添加月相算法逻辑
 
     // 主操作列表[4,9](@ref)
-    const mainActions: GameAction[] = [
+    const mainActions: GameAction[] = reactive([
       { label: '闭关修炼', path: '/' },
       { label: '日常修行', path: '/action' },
-      { label: '秘境探索', path: '/battle' },
-      { label: '炼丹制药', path: '/alchemy', require: () => false },
-      { label: '功法参悟', path: '/comprehend', require: () => false },
+      { label: '花园', path: '/garden', show: (user) => user.realmStatus.majorRealm > 1 },
+      { label: '秘境探索', path: '/map' },
+      { label: '炼丹制药', path: '/alchemy', enable: () => false },
+      { label: '功法参悟', path: '/comprehend', enable: () => false },
       //调试
       { label: '调试', path: '/debug' },
-    ]
+    ])
 
     const customColors = [
       { color: '#f56c6c', percentage: 20 },
@@ -146,7 +150,7 @@ export default defineComponent({
 
     // 响应式菜单状态
     const appStore = useAppStore()
-    console.log(appStore.activeTab)
+
     const activeTab = appStore.activeTab // 默认激活第一个可用标签
 
     const onTabClick = (tab: any) => {
@@ -165,8 +169,12 @@ export default defineComponent({
       }
     }
 
+    const isActionShown = (action: GameAction) => {
+      return !action.show || action.show(player)
+    }
+
     const isActionDisabled = (action: GameAction) => {
-      return action.require && !action.require()
+      return action.enable && !action.enable(player)
     }
 
     // 响应式菜单状态
