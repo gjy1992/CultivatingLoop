@@ -456,7 +456,7 @@ export const useUserStore = defineStore('user', {
       const { majorRealm, minorRealm } = this.realmStatus
       const R = majorRealm - 1 // 大境界
       const r = minorRealm - 1 // 小境界
-      let Q0 = Param.Q0 * Math.pow(+Param.a, R) * (1 + Param.b * r) * GammaCoef(R, r)
+      let Q0 = Param.Q0 * Math.pow(1 + Param.a, R) * (1 + Param.b * r) * GammaCoef(R, r)
       if (R == 6) {
         Q0 = Q0 * (1 + 0.2 * r) //​天劫加成
       }
@@ -708,6 +708,7 @@ export const useUserStore = defineStore('user', {
               if (action.disable && action.disable(this)) {
                 //临时禁用，等待可用时机
                 actionData.cooldownRemaining = 0
+                actionData.progress = 0
               } else {
                 if (action.cost) action.cost(this)
                 actionData.progress = 0
@@ -729,6 +730,7 @@ export const useUserStore = defineStore('user', {
                 if (action.disable && action.disable(this)) {
                   //临时禁用，等待可用时机
                   actionData.cooldownRemaining = 0
+                  actionData.progress = 0
                 } else {
                   if (action.cost) action.cost(this)
                   actionData.progress = 0
