@@ -205,9 +205,9 @@ export default defineComponent({
         },
         {
           icon: '💎',
-          name: '灵石',
-          value: resources.magicStone,
-          visible: resources.magicStone > 0,
+          name: '下品灵石',
+          value: resources.magicStoneLow,
+          visible: resources.magicStoneLow > 0,
         },
         {
           icon: '🌿',

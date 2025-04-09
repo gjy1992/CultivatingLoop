@@ -3,14 +3,14 @@
     <div class="grid">
       <div class="grid-item" v-for="(slot, index) in player.gardendata.slots" :key="index">
         <p class="plant-name">
-          {{ slot.药草 === '' ? slot.name : slot.药草 }}
+          {{ slot.药草 === '' ? slot.name : 药草数据[slot.药草].name }}
         </p>
         <p>{{ slot.description }}</p>
         <p>等级: {{ slot.level }}</p>
         <span style="display: inline-block; overflow: auto; white-space: nowrap"
           >剩余时间: {{ formatTime2(slot.remainingTime) }}</span
         >
-        <button @click="handleAction(index)">
+        <button @click="handleAction(index)" :disabled="slot.remainingTime > 0">
           {{ slot.药草 === '' ? '种地' : '采摘' }}
         </button>
       </div>
@@ -22,6 +22,7 @@
 import GardenModule from '@/modules/gardenModule'
 import { formatTime2 } from '@/modules/utilsModule'
 import { useUserStore } from '@/stores/user'
+import { 药草数据 } from '@/modules/gardenModule'
 
 export default {
   data() {
@@ -35,11 +36,12 @@ export default {
     }
     return {
       player: useUserStore(),
+      药草数据: 药草数据,
     }
   },
   methods: {
     handleAction(index) {
-      GardenModule.handleAction(index, '下品灵草', this.player, this.player.gardendata)
+      GardenModule.handleAction(index, 'minHerbs', this.player, this.player.gardendata)
     },
     formatTime2(time) {
       return formatTime2(time)

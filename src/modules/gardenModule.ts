@@ -1,12 +1,42 @@
-import type { UserStoreType } from '@/stores/user'
+import type { UserStoreType, ResoucesSystem } from '@/stores/user'
 
 interface GardenSlot {
   // 花园槽位
   name: string // 槽位名称
   description: string // 槽位描述
   level: number // 槽位等级
-  药草: string // 药草名称
+  药草: keyof ResoucesSystem | '' // 药草名称
   remainingTime: number // 剩余时间（秒）
+}
+
+interface 药草 {
+  key: string //对应ResoucesSystem里的键
+  name: string
+  description: string
+  time: number // 生产时间（秒）
+}
+
+// 药草列表
+const 药草数据: { [key: string]: 药草 } = {
+  // 药草列表
+  minHerbs: {
+    key: 'minHerbs',
+    name: '普通草药',
+    description: '普通草药',
+    time: 60,
+  },
+  midHerbs: {
+    key: 'midHerbs',
+    name: '中级草药',
+    description: '中级草药',
+    time: 60,
+  },
+  maxHerbs: {
+    key: 'maxHerbs',
+    name: '高级草药',
+    description: '高级草药',
+    time: 60,
+  },
 }
 
 interface GardenData {
@@ -31,23 +61,22 @@ const GardenModule = {
   },
 
   //种地
-  plant(slot: GardenSlot, name: string) {
+  plant(slot: GardenSlot, name: keyof ResoucesSystem) {
     // 种地
     if (slot && slot.药草 === '') {
       slot.药草 = name
-      slot.remainingTime = 3600 // 1小时
+      slot.remainingTime = 药草数据[slot.药草].time // 1小时
     }
   },
 
-  handleAction(slotidx: number, name: string, user: UserStoreType, gd: GardenData) {
+  handleAction(slotidx: number, name: keyof ResoucesSystem, user: UserStoreType, gd: GardenData) {
     const slot = gd.slots[slotidx]
     if (slot && slot.药草 === '') {
       this.plant(slot, name) // 种地
     } else {
       // 处理收获逻辑
       if (slot && slot.药草 !== '') {
-        // TODO 收获药草
-
+        user.resources[slot.药草] += 1 // 收获药草
         slot.药草 = ''
         slot.remainingTime = 0
         // 更新经验和资源
@@ -82,3 +111,4 @@ const GardenModule = {
 
 export type { GardenSlot, GardenData }
 export default GardenModule
+export { 药草数据 }

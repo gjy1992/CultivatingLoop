@@ -70,11 +70,16 @@ interface BattleAttributes {
 interface ResoucesSystem {
   WarehouseLevel: number //仓库等级
   money: number //铜币 资源默认值为-1，方便在系统未开启的时候不显示
-  magicStone: number //灵石 无存储量
+  magicStoneLow: number //下品灵石 无存储量
+  magicStoneMid: number //中品灵石 无存储量
+  magicStoneHigh: number //上品灵石 无存储量
+  magicStoneTop: number //极品灵石 无存储量
   minHerbs: number //普通草药，卖钱 存储量为仓库等级*1000
   midHerbs: number //中级草药，灵气池、宗门任务 存储量为仓库等级*100
   maxHerbs: number //高级草药，炼丹 存储量为仓库等级*10
 }
+
+export type { ResoucesSystem }
 
 class BattleSystem {
   // 友方
@@ -328,11 +333,14 @@ export const useUserStore = defineStore('user', {
     name: '无名修士',
     resources: reactive<ResoucesSystem>({
       WarehouseLevel: 1, //仓库等级
-      money: -1, //铜币 资源默认值为-1，方便在系统未开启的时候不显示
-      magicStone: -1, //灵石 无存储量
-      minHerbs: -1, //普通草药，卖钱 存储量为仓库等级*1000
-      midHerbs: -1, //中级草药，灵气池、宗门任务 存储量为仓库等级*100
-      maxHerbs: -1, //高级草药，炼丹 存储量为仓库等级*10
+      money: 0, //铜币
+      magicStoneLow: 0, //下品灵石 无存储量
+      magicStoneMid: 0, //中品灵石 无存储量
+      magicStoneHigh: 0, //上品灵石 无存储量
+      magicStoneTop: 0, //极品灵石 无存储量
+      minHerbs: 0, //普通草药，卖钱 存储量为仓库等级*1000
+      midHerbs: 0, //中级草药，灵气池、宗门任务 存储量为仓库等级*100
+      maxHerbs: 0, //高级草药，炼丹 存储量为仓库等级*10
     }),
     realmStatus: reactive<RealmStatus>({
       majorRealm: 1, // 大境界（1-7对应文档境界体系）
