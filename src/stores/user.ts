@@ -83,9 +83,9 @@ export type { ResoucesSystem }
 
 class BattleSystem {
   // 友方
-  allies: BattleAttributes[] = [] // 友方
+  allies: BattleAttributes[] = reactive([]) // 友方
   // 敌方
-  enemies: BattleAttributes[] = [] // 敌方
+  enemies: BattleAttributes[] = reactive([]) // 敌方
 
   result: number = -2 // 战斗结果（1-胜利，0-失败，-1-战斗中, -2等待战斗开始）
 
@@ -228,9 +228,16 @@ class AdventureCombat {
   battleTimer: number = 0 // 战斗定时器
   battleInterval: number = 100 // 战斗更新间隔（毫秒）
   battleLog: Reactive<string[]> = [] // 战斗日志
+  currentLevel = 0
+  player: UserStoreType | null = null
+  onEndCallback?: (result: number) => void = undefined
 
   constructor() {
     this.battleSystem = new BattleSystem()
+  }
+
+  initPlayer(user: UserStoreType) {
+    this.player = user
   }
 
   AddLog(...log: any[]) {
@@ -259,8 +266,8 @@ class AdventureCombat {
       const enemyName = enemyData[Math.floor(Math.random() * enemyData.length)] // 随机选择敌人
       const enemy = EnemyList[enemyName] // 获取敌人数据
       const enemyAttributes: BattleAttributes = {
-        original: { ...enemy.attributes },
-        current: reactive<CombatAttributes>({ ...enemy.attributes }),
+        original: JSON.parse(JSON.stringify(enemy.attributes)),
+        current: reactive<CombatAttributes>(JSON.parse(JSON.stringify(enemy.attributes))),
         buffs: reactive<Buff[]>([]), // 增益效果
         drops: this.currentMap?.drops || [], // 掉落物品
         dropProbs: this.currentMap?.dropProbs || [], // 掉落概率
@@ -287,7 +294,7 @@ class AdventureCombat {
     // 设置友方列表
     const player: BattleAttributes = {
       original: playerData,
-      current: reactive<CombatAttributes>({ ...playerData }),
+      current: reactive<CombatAttributes>(JSON.parse(JSON.stringify(playerData))),
       buffs: reactive<Buff[]>([]), // 增益效果
       drops: [], // 玩家没有掉落物品
       dropProbs: [],
@@ -302,6 +309,8 @@ class AdventureCombat {
     }
     this.battleSystem.allies = [player]
     this.battleSystem.result = -2 // 等待战斗开始
+    this.battleLog = [] // 清空战斗日志
+    this.currentLevel = 1
     // console.log(this.stopBattle)
     //this.battleUpdate()
     // console.log(this.stopBattle)
@@ -320,8 +329,25 @@ class AdventureCombat {
     if (this.battleSystem && this.battleSystem.result > -2) {
       this.battleSystem.update(this.battleInterval / 1000) // 更新战斗系统
       if (this.battleSystem.result !== -1) {
-        console.log('战斗结果:', this.battleSystem.result) // 输出战斗结果
-        this.stopBattle() // 停止战斗
+        console.log('本次战斗结果:', this.battleSystem.result) // 输出战斗结果
+        if (this.battleSystem.result == 1) {
+          //胜利
+          if (this.currentLevel >= (this.currentMap?.levelNum || 0)) {
+            this.player?.clearedMaps.push(this.currentMap?.name || '')
+            this.AddLog('地图通关')
+            this.stopBattle() // 停止战斗
+            if (this.onEndCallback) this.onEndCallback(1)
+          } else {
+            this.currentLevel++
+            const enemies = this.generateEnemies(this.currentMap?.enemies || [])
+            this.battleSystem.enemies = enemies // 设置敌人列表
+            this.battleSystem.result = -1
+          }
+        } else {
+          this.AddLog('战斗失败')
+          this.stopBattle() // 停止战斗
+          if (this.onEndCallback) this.onEndCallback(0)
+        }
       }
     }
   }
@@ -329,7 +355,7 @@ class AdventureCombat {
   stopBattle() {
     this.battleSystem = null // 清空战斗系统
     this.currentMap = null // 清空当前地图数据
-    this.battleLog = [] // 清空战斗日志
+    this.currentLevel = 0
   }
 }
 

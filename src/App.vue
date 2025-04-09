@@ -112,6 +112,8 @@ export default defineComponent({
 
     const player = useUserStore()
 
+    combatMgr.initPlayer(player)
+
     let currentTime = ref(dayjs().format('HH:mm'))
     let lunarPhase = '新月' // 月相状态
     // 这里可以添加月相算法逻辑

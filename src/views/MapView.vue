@@ -39,6 +39,11 @@ const selectMap = (map: string) => {
   player.enterAdvMap(AdventureMapList[map])
   router.push({ path: '/battle' })
 }
+
+if (player.currentBattleMap != '' && combatMgr.currentMap) {
+  // continue battle
+  router.push({ path: '/battle' })
+}
 </script>
 
 <style scoped>

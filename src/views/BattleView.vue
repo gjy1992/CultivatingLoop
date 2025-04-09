@@ -42,6 +42,7 @@
 
       <div class="enemy-info">
         <h3>敌方信息</h3>
+        <h4>第{{ combatMgr.currentLevel }} / {{ mapData.levelNum }}关</h4>
         <div v-for="(enemy, index) in battleSystem.enemies" :key="index">
           {{ enemy.metadata.name }} - LV: {{ enemy.metadata.strength }} - HP:
           {{ Math.round(enemy.current.health.current) }}
@@ -82,7 +83,7 @@
         <h3>主要信息</h3>
         <div>当前地图：{{ mapData.name }}</div>
         <div>可能掉落物品：{{ mapData.drops.join(',') }}</div>
-        <el-button type="primary" @click="exit()">离开地图</el-button>
+        <el-button type="primary" @click="exit()">{{ exitBtn }}</el-button>
       </div>
     </div>
 
@@ -121,10 +122,19 @@ if (!mapData || !battleSystem) {
   throw new Error('mapData or battleSystem is null')
 }
 
+const exitBtn = ref('强行撤退')
+
 const exit = () => {
   player.exitAdvMap()
   router.push({ path: '/map' })
 }
+
+const onEndCallback = (result: number) => {
+  combatMgr.onEndCallback = undefined
+  exitBtn.value = '返回'
+}
+
+combatMgr.onEndCallback = onEndCallback
 </script>
 
 <style scoped>

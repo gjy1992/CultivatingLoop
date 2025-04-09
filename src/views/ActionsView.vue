@@ -5,7 +5,9 @@
       <div v-for="action in player.processingActions" class="action-item">
         {{ action }}
         <el-progress
-          :percentage="(player.actionsStatus[action].progress / ActionsMap[action].duration) * 100"
+          :percentage="
+            Math.round((player.actionsStatus[action].progress / ActionsMap[action].duration) * 100)
+          "
           class="progress-bar"
         />
       </div>

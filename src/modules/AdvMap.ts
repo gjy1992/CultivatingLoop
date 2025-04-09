@@ -33,7 +33,7 @@ const AdventureMapList: { [key: string]: AdventureMapData } = {
     drops: ['物品4', '物品5', '物品6'],
     dropProbs: [0.05, 0.02, 0.01],
     difficulty: 2,
-    levelNum: 20,
+    levelNum: 10,
     preaquisition: ['地图1'], // 前置关卡
   },
 }
