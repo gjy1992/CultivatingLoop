@@ -6,13 +6,8 @@
       {{ player.qiSystem.concentrationFactor }}
 
       <el-tabs v-model="activeTab" type="card" class="action-tabs" @tab-click="onTabClick">
-        <el-tab-pane
-          v-for="(action, index) in mainActions"
-          :key="index"
-          :label="action.label"
-          :name="action.path || index.toString()"
-          :disabled="isActionDisabled(action)"
-        />
+        <el-tab-pane v-for="(action, index) in mainActions" :key="index" :label="action.label"
+          :name="action.path || index.toString()" :disabled="isActionDisabled(action)" />
       </el-tabs>
 
       <el-dropdown trigger="click">
@@ -29,54 +24,46 @@
     <div class="game-zone">
       <el-aside class="game-container">
         <!-- 角色状态面板 -->
-        <el-card title="信息" class="character-panel" hoverable>
+        <el-card title="信息" class="card-type" hoverable>
           <!-- 头像和姓名 -->
-          <div class="user-info">
+          <div class="character-head">
             <el-avatar :size="25" />
             {{ player.name }}
           </div>
           <br />
           <div class="realms-status">
-            <p>{{ player.majorRealmsName() }}境 {{ player.minorRealmsName() }}</p>
-            <el-progress
-              :show-text="false"
-              :stroke-width="20"
-              striped
-              striped-flow
-              :duration="10"
-              :percentage="realmProgress"
-              :color="customColors"
-            ></el-progress>
+            <p class="card-type">{{ player.majorRealmsName() }}境 {{ player.minorRealmsName() }}</p>
+            <el-progress :show-text="false" :stroke-width="20" striped striped-flow :duration="10"
+              :percentage="realmProgress" :color="customColors"></el-progress>
           </div>
         </el-card>
 
-        <el-card
-          v-if="player.processingActions.length > 0"
-          title="行动"
-          class="character-resource"
-          hoverable
-        >
-          <h2>行动</h2>
-          <el-divider border-style="dashed" />
-          <div
-            v-for="(action, index) in player.processingActions"
-            :key="index"
-            class="user-resource"
-          >
+        <el-card v-if="player.processingActions.length > 0" title="行动" class="card-type" hoverable>
+          <div class="character-head">行动</div>
+          <el-divider class="custom-divider"  border-style="dashed"/>
+          <div v-for="(action, index) in player.processingActions" :key="index" class="character-info">
             {{ action }}中...
           </div>
         </el-card>
 
-        <el-card v-if="resourceList.length > 0" title="资源" class="character-resource" hoverable>
-          <h2>资源</h2>
-          <el-divider border-style="dashed" />
-          <div v-for="(item, index) in resourceList" :key="index" class="user-resource">
+        <el-card v-if="resourceList.length > 0" title="资源" class="card-type" hoverable>
+          <div class="character-head">资源</div>
+          <el-divider class="custom-divider"  border-style="dashed"/>
+          <div v-for="(item, index) in resourceList" :key="index" class="character-info">
             {{ item.icon }} {{ item.name }} {{ item.value }}
           </div>
         </el-card>
+
+
+
+        <el-button class="bag-button" @click="showBag = true">🎒 背包</el-button>
+
+
       </el-aside>
 
-      <el-divider direction="vertical" border-style="dashed" />
+      <Backpack :visible="showBag" @close="showBag = false" />
+
+      <el-divider direction="vertical" />
       <!-- 主操作面板 -->
       <router-view class="game-display" />
     </div>
@@ -91,6 +78,7 @@ import 'dayjs/locale/zh-cn'
 import { useAppStore } from '@/stores/app'
 import { useUserStore, combatMgr } from '@/stores/user'
 import type { UserStoreType } from '@/stores/user'
+import Backpack from '@/views/Backpack.vue'
 
 // 类型定义
 type GameAction = {
@@ -106,6 +94,9 @@ type MenuType = 'settings' | 'archive' | 'none'
 
 export default defineComponent({
   name: 'HomeView',
+  components: {
+    Backpack,
+  },
 
   setup() {
     const router = useRouter()
@@ -124,9 +115,13 @@ export default defineComponent({
       { label: '秘境探索', path: '/map' },
       { label: '炼丹制药', path: '/alchemy', enable: () => false },
       { label: '功法参悟', path: '/comprehend', enable: () => false },
+      { label: '商店', path: '/shop' },
       //调试
       { label: '调试', path: '/debug' },
     ])
+
+    let showBag = ref(false)
+
 
     const customColors = [
       { color: '#f56c6c', percentage: 20 },
@@ -151,6 +146,27 @@ export default defineComponent({
       combatMgr.battleTimer = setInterval(() => {
         combatMgr.battleUpdate()
       }, combatMgr.battleInterval)
+
+      // 判断玩家名字是否为空
+      if (player.name === null || player.name === '') {
+        import('element-plus').then(({ ElMessageBox }) => {
+          ElMessageBox.prompt('请输入您的名字', '起名', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            inputValidator: (value) => {
+              return value.trim() !== '' ? true : '名字不能为空'
+            },
+          })
+            .then(({ value }) => {
+              // 用户点击确定，设置玩家名字
+              player.name = value
+            })
+            .catch(() => {
+              // 用户点击取消，可根据需求处理
+              console.log('用户取消了起名操作')
+            })
+        })
+      }
     })
 
     onUnmounted(() => {
@@ -193,6 +209,8 @@ export default defineComponent({
     const isActionDisabled = (action: GameAction) => {
       return action.enable && !action.enable(player)
     }
+
+
 
     // 响应式菜单状态
 
@@ -260,6 +278,7 @@ export default defineComponent({
       isActionDisabled,
       toggleMenu,
       resourceList,
+      showBag,
     }
   },
 })
@@ -273,7 +292,8 @@ export default defineComponent({
 }
 
 .system-menu {
-  color: #f0f0f0; /* 改成你想要的颜色，比如白色 */
+  color: #f0f0f0;
+  /* 改成你想要的颜色，比如白色 */
   cursor: pointer;
   font-weight: bold;
 }
@@ -360,16 +380,48 @@ router-view {
   max-width: none;
 }
 
-.character-panel {
+.card-type {
+  border-radius: 12px;
   border: 1px;
   padding: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.character-info {
+  /* 将 text-size 替换为 font-size */
+  font-size: 15px;
+  margin-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.character-head {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.custom-divider {
+  height: 1px !important;
 }
 
 .user-info {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.bag-button {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: #3b82f6;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 1000;
+  border: none;
 }
 
 .menu-item {
@@ -384,5 +436,20 @@ router-view {
 .disabled {
   color: #616161;
   cursor: not-allowed;
+}
+
+.backpack-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 99999 !important;
+  /* 强制比任何 Element UI 层都高 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
 }
 </style>

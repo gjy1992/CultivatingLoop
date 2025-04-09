@@ -1,16 +1,16 @@
-import type { UserStoreType, ResoucesSystem } from '@/stores/user'
+import type { UserStoreType, ResourcesSystem } from '@/stores/user'
 
 interface GardenSlot {
   // 花园槽位
   name: string // 槽位名称
   description: string // 槽位描述
   level: number // 槽位等级
-  药草: keyof ResoucesSystem | '' // 药草名称
+  药草: keyof ResourcesSystem | '' // 药草名称
   remainingTime: number // 剩余时间（秒）
 }
 
 interface 药草 {
-  key: string //对应ResoucesSystem里的键
+  key: string //对应ResourcesSystem里的键
   name: string
   description: string
   time: number // 生产时间（秒）
@@ -61,7 +61,7 @@ const GardenModule = {
   },
 
   //种地
-  plant(slot: GardenSlot, name: keyof ResoucesSystem) {
+  plant(slot: GardenSlot, name: keyof ResourcesSystem) {
     // 种地
     if (slot && slot.药草 === '') {
       slot.药草 = name
@@ -69,7 +69,7 @@ const GardenModule = {
     }
   },
 
-  handleAction(slotidx: number, name: keyof ResoucesSystem, user: UserStoreType, gd: GardenData) {
+  handleAction(slotidx: number, name: keyof ResourcesSystem, user: UserStoreType, gd: GardenData) {
     const slot = gd.slots[slotidx]
     if (slot && slot.药草 === '') {
       this.plant(slot, name) // 种地

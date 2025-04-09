@@ -3,20 +3,11 @@
     <h1>Debug Page</h1>
     <div class="debug-form">
       <el-select v-model="selectedResource" placeholder="选择资源类型" class="debug-input">
-        <el-option
-          v-for="key in Object.keys(resourceMap)"
-          :key="key"
-          :label="labelMap[key as keyof typeof labelMap]"
-          :value="key"
-        />
+        <el-option v-for="key in Object.keys(resourceMap)" :key="key" :label="labelMap[key as keyof typeof labelMap]"
+          :value="key" />
       </el-select>
 
-      <el-input
-        v-model.number="inputValue"
-        placeholder="输入数量"
-        type="number"
-        class="debug-input"
-      />
+      <el-input v-model.number="inputValue" placeholder="输入数量" type="number" class="debug-input" />
 
       <el-button type="primary" @click="handleIncrease" class="debug-button"> 确认增加 </el-button>
     </div>
@@ -26,6 +17,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { useUserStore } from '@/stores/user'
+import type { ResourcesSystem } from '@/stores/user'
 
 export default {
   name: 'DebugView',
@@ -39,7 +31,10 @@ export default {
         elements: '五行点数',
         WarehouseLevel: '仓库等级',
         money: '铜币',
-        magicStone: '灵石',
+        magicStoneLow: '下品灵石',
+        magicStoneMid: '中品灵石',
+        magicStoneHigh: '上品灵石',
+        magicStoneTop: '极品灵石',
         minHerbs: '药草',
         midHerbs: '灵草',
         maxHerbs: '仙草',
@@ -49,7 +44,10 @@ export default {
         elements: 'element.unusedPoints',
         WarehouseLevel: 'resources.WarehouseLevel',
         money: 'resources.money',
-        magicStone: 'resources.magicStone',
+        magicStoneLow: 'resources.magicStoneLow',
+        magicStoneMid: 'resources.magicStoneMid',
+        magicStoneHigh: 'resources.magicStoneHigh',
+        magicStoneTop: 'resources.magicStoneTop',
         minHerbs: 'resources.minHerbs',
         midHerbs: 'resources.midHerbs',
         maxHerbs: 'resources.maxHerbs',
@@ -79,6 +77,7 @@ export default {
   max-width: 100%;
   border-radius: 15px;
 }
+
 button {
   margin: 10px;
   padding: 10px 20px;
