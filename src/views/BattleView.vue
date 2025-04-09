@@ -117,8 +117,8 @@ combatMgr.startBattle()
 const battleSystem = combatMgr.battleSystem
 const mapData = combatMgr.currentMap
 // Ensure mapData is not null
-if (!mapData) {
-  throw new Error('mapData is null')
+if (!mapData || !battleSystem) {
+  throw new Error('mapData or battleSystem is null')
 }
 
 const exit = () => {

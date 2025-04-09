@@ -22,7 +22,8 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent } from 'vue'
 import GardenModule from '@/modules/gardenModule'
 import { formatTime2 } from '@/modules/utilsModule'
 import { useUserStore } from '@/stores/user'
@@ -44,10 +45,10 @@ export default {
     }
   },
   methods: {
-    handleAction(index) {
+    handleAction(index: number) {
       GardenModule.handleAction(index, 'minHerbs', this.player, this.player.gardendata)
     },
-    formatTime2(time) {
+    formatTime2(time: number) {
       return formatTime2(time)
     },
   },
