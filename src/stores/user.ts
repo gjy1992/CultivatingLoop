@@ -751,7 +751,7 @@ export const useUserStore = defineStore('user', {
       this.actionsStatus[action].progress = 0
       this.actionsStatus[action].cooldownRemaining = a.cooldown
       if (this.processingActions.length > this.maxProcessingActions) {
-        this.processingActions.shift()
+        this.cancelAction(this.processingActions[0]) // 取消第一个技能
       }
     },
 

@@ -50,6 +50,23 @@
           </div>
         </el-card>
 
+        <el-card
+          v-if="player.processingActions.length > 0"
+          title="行动"
+          class="character-resource"
+          hoverable
+        >
+          <h2>行动</h2>
+          <el-divider border-style="dashed" />
+          <div
+            v-for="(action, index) in player.processingActions"
+            :key="index"
+            class="user-resource"
+          >
+            {{ action }}中...
+          </div>
+        </el-card>
+
         <el-card v-if="resourceList.length > 0" title="资源" class="character-resource" hoverable>
           <h2>资源</h2>
           <el-divider border-style="dashed" />
