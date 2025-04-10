@@ -67,7 +67,7 @@ interface BattleAttributes {
   metadata: EnemyData
 }
 
-interface ResoucesSystem {
+interface ResourcesSystem {
   WarehouseLevel: number //仓库等级
   money: number //铜币 资源默认值为-1，方便在系统未开启的时候不显示
   magicStoneLow: number //下品灵石 无存储量
@@ -77,9 +77,23 @@ interface ResoucesSystem {
   minHerbs: number //普通草药，卖钱 存储量为仓库等级*1000
   midHerbs: number //中级草药，灵气池、宗门任务 存储量为仓库等级*100
   maxHerbs: number //高级草药，炼丹 存储量为仓库等级*10
+  contribution: number // 宗门贡献
 }
 
-export type { ResoucesSystem }
+export const currencyNameMap: Record<keyof ResourcesSystem, string> = {
+  WarehouseLevel: "仓库等级", //仓库等级
+  money: "铜币", //铜币 资源默认值为-1，方便在系统未开启的时候不显示
+  magicStoneLow: "下品灵石", //下品灵石 无存储量
+  magicStoneMid: "中品灵石", //中品灵石 无存储量
+  magicStoneHigh: "上品灵石", //上品灵石 无存储量
+  magicStoneTop: "极品灵石", //极品灵石 无存储量
+  minHerbs: "普通草药", //普通草药，卖钱 存储量为仓库等级*1000
+  midHerbs: "中级草药", //中级草药，灵气池、宗门任务 存储量为仓库等级*100
+  maxHerbs: "高级草药", //高级草药，炼丹 存储量为仓库等级*10
+  contribution: "宗门贡献", // 宗门贡献
+}
+
+export type { ResourcesSystem }
 
 class BattleSystem {
   // 友方
@@ -364,8 +378,8 @@ export { combatMgr } // 导出战斗管理器实例
 
 export const useUserStore = defineStore('user', {
   state: () => ({
-    name: '无名修士',
-    resources: reactive<ResoucesSystem>({
+    name: '',
+    resources: reactive<ResourcesSystem>({
       WarehouseLevel: 1, //仓库等级
       money: 0, //铜币
       magicStoneLow: 0, //下品灵石 无存储量
@@ -375,6 +389,7 @@ export const useUserStore = defineStore('user', {
       minHerbs: 0, //普通草药，卖钱 存储量为仓库等级*1000
       midHerbs: 0, //中级草药，灵气池、宗门任务 存储量为仓库等级*100
       maxHerbs: 0, //高级草药，炼丹 存储量为仓库等级*10
+      contribution: 0, // 宗门贡献
     }),
     realmStatus: reactive<RealmStatus>({
       majorRealm: 1, // 大境界（1-7对应文档境界体系）
@@ -604,6 +619,8 @@ export const useUserStore = defineStore('user', {
       // 停止战斗(如果正在战斗的话)
       this.stopBattle()
 
+      this.name = ''
+
       this.resources.money = Math.max(0, Math.round(this.resources.money * 0.1)) // 金钱重置
       if (this.constitutions.find((a) => a.name == '轮回圣体') === undefined) {
         this.realmStatus.majorRealm = 1 // 大境界（1-7对应文档境界体系）
@@ -667,6 +684,10 @@ export const useUserStore = defineStore('user', {
       this.currentBattleMap = '' // 当前战斗地图
 
       GardenModule.reset(this.gardendata) // 重置花园数据
+
+
+      // 刷新页面
+      window.location.reload();
     },
     // 停止战斗
     stopBattle() {
