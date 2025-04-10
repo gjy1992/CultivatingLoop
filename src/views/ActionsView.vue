@@ -12,7 +12,7 @@
         />
       </div>
     </div>
-    <div class="actions-container">
+    <div class="actions-list">
       <div v-for="action in player.actions" class="action-item">
         <el-button
           type="primary"
@@ -70,6 +70,13 @@ const isActionDisabled = (action: string) => {
 .actions-container {
   display: flex;
   flex-direction: column;
+  gap: 20px;
+  margin-top: 2rem;
+}
+
+.actions-list {
+  display: flex;
+  flex-direction: row;
   gap: 20px;
   margin-top: 2rem;
 }

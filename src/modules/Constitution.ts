@@ -91,3 +91,15 @@ const constitutionLists: { [key: string]: Constitution } = {
 
 export default constitutionLists
 export type { Constitution, ConstitutionData }
+
+//心法、被动法术
+const passiveSpells: { [key: string]: Constitution } = {
+  基础吐纳术: {
+    name: '基础吐纳术',
+    description: '基础吐纳术，修仙的基础',
+    level: 1,
+    canLevelUp: false,
+    effect: () => '学会了打坐',
+    unlock: (user: UserStoreType) => false,
+  },
+}

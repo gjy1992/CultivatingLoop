@@ -11,6 +11,7 @@ import ActionsMap from '@/modules/actions'
 import type { Action, ActionsData } from '@/modules/actions'
 import GardenModule from '@/modules/gardenModule'
 import type { GardenData } from '@/modules/gardenModule'
+import { useBagStore } from './bag'
 
 const Param = {
   Q0: 200, // 炼体境第一层基础值（建议100~500）
@@ -81,16 +82,16 @@ interface ResourcesSystem {
 }
 
 export const currencyNameMap: Record<keyof ResourcesSystem, string> = {
-  WarehouseLevel: "仓库等级", //仓库等级
-  money: "铜币", //铜币 资源默认值为-1，方便在系统未开启的时候不显示
-  magicStoneLow: "下品灵石", //下品灵石 无存储量
-  magicStoneMid: "中品灵石", //中品灵石 无存储量
-  magicStoneHigh: "上品灵石", //上品灵石 无存储量
-  magicStoneTop: "极品灵石", //极品灵石 无存储量
-  minHerbs: "普通草药", //普通草药，卖钱 存储量为仓库等级*1000
-  midHerbs: "中级草药", //中级草药，灵气池、宗门任务 存储量为仓库等级*100
-  maxHerbs: "高级草药", //高级草药，炼丹 存储量为仓库等级*10
-  contribution: "宗门贡献", // 宗门贡献
+  WarehouseLevel: '仓库等级', //仓库等级
+  money: '铜币', //铜币 资源默认值为-1，方便在系统未开启的时候不显示
+  magicStoneLow: '下品灵石', //下品灵石 无存储量
+  magicStoneMid: '中品灵石', //中品灵石 无存储量
+  magicStoneHigh: '上品灵石', //上品灵石 无存储量
+  magicStoneTop: '极品灵石', //极品灵石 无存储量
+  minHerbs: '普通草药', //普通草药，卖钱 存储量为仓库等级*1000
+  midHerbs: '中级草药', //中级草药，灵气池、宗门任务 存储量为仓库等级*100
+  maxHerbs: '高级草药', //高级草药，炼丹 存储量为仓库等级*10
+  contribution: '宗门贡献', // 宗门贡献
 }
 
 export type { ResourcesSystem }
@@ -376,6 +377,18 @@ class AdventureCombat {
 const combatMgr = new AdventureCombat() // 战斗管理器实例
 export { combatMgr } // 导出战斗管理器实例
 
+interface SkillData {
+  name: string // 技能名称
+  level: number // 技能等级
+}
+
+type UserCondition = (user: UserStoreType) => boolean
+const LevelUpRequirements: [UserCondition?] = [
+  (user) => {
+    return user.hasPassiveSkills('基础吐纳术')
+  },
+]
+
 export const useUserStore = defineStore('user', {
   state: () => ({
     name: '',
@@ -454,21 +467,33 @@ export const useUserStore = defineStore('user', {
       experienceToNextLevel: 0,
       upgradeCost: 0,
     }), //花园数据
+    //心法和被动技能
+    passiveSkills: reactive<Record<string, SkillData>>({}), //被动技能
   }),
   actions: {
     // majorRealmsName
     majorRealmsName(): string {
+      if (this.realmStatus.majorRealm == 0) {
+        return '凡人'
+      }
       const arr = ['炼体', '筑基', '金丹', '元婴', '化神', '合体', '渡劫']
-      return arr[this.realmStatus.majorRealm - 1]
+      return arr[this.realmStatus.majorRealm - 1] + '境'
     },
     // minorRealmsName
     minorRealmsName(): string {
+      if (this.realmStatus.majorRealm == 0) {
+        return ''
+      }
       const arr = ['一', '二', '三', '四', '五', '六', '七', '八', '九']
       return '第' + arr[this.realmStatus.minorRealm - 1] + '层'
     },
     // 计算当前境界突破所需灵气
     calculateRequiredQi() {
       const { majorRealm, minorRealm } = this.realmStatus
+      if (majorRealm == 0) {
+        this.realmStatus.requiredQi = 0
+        return
+      }
       const R = majorRealm - 1 // 大境界
       const r = minorRealm - 1 // 小境界
       let Q0 = Param.Q0 * Math.pow(1 + Param.a, R) * (1 + Param.b * r) * GammaCoef(R, r)
@@ -510,7 +535,12 @@ export const useUserStore = defineStore('user', {
     },
     CanLevelUp(): boolean {
       // 判断是否可以突破
-      return this.qiSystem.currentQi >= this.realmStatus.requiredQi
+      let r = this.qiSystem.currentQi >= this.realmStatus.requiredQi
+      if (this.realmStatus.minorRealm == 9 || this.realmStatus.majorRealm == 0) {
+        const req_func = LevelUpRequirements[this.realmStatus.majorRealm]
+        if (req_func) r = r && req_func(this)
+      }
+      return r
     },
     LevelUp(): void {
       // 增加当前境界小境界
@@ -556,6 +586,7 @@ export const useUserStore = defineStore('user', {
       }
       // 计算当前突破所需灵气
       this.calculateRequiredQi()
+      this.updateActions()
     },
     // 分配灵根点数
     DistributePoints(key: keyof ElementSystem): void {
@@ -623,7 +654,7 @@ export const useUserStore = defineStore('user', {
 
       this.resources.money = Math.max(0, Math.round(this.resources.money * 0.1)) // 金钱重置
       if (this.constitutions.find((a) => a.name == '轮回圣体') === undefined) {
-        this.realmStatus.majorRealm = 1 // 大境界（1-7对应文档境界体系）
+        this.realmStatus.majorRealm = 0 // 大境界（1-7对应文档境界体系）
         this.realmStatus.minorRealm = 1 // 小境界（1-9）
       } else {
         let lv = (this.realmStatus.majorRealm - 1) * 10 + this.realmStatus.minorRealm - 1
@@ -637,12 +668,24 @@ export const useUserStore = defineStore('user', {
       this.qiSystem.concentrationFactor = 1.0 // 当前灵气浓度（0.0-1.0）
       this.qiSystem.lastUpdateTime = new Date().getTime() // 用于离线收益计算
       this.qiSystem.autoGainPerSec = 1 // 自动挂机速率（根据灵根计算）
+      // 剩余属性点有一定程度的继承
+      this.element.unusedPoints =
+        5 +
+        Math.round(
+          Math.sqrt(
+            this.element.metalPoints +
+              this.element.firePoints +
+              this.element.woodPoints +
+              this.element.waterPoints +
+              this.element.earthPoints +
+              this.element.unusedPoints,
+          ),
+        ) // 增加剩余点数
       this.element.metalPoints = 0
       this.element.woodPoints = 0
       this.element.waterPoints = 0
       this.element.firePoints = 0
       this.element.earthPoints = 0
-      this.element.unusedPoints = 5 // 剩余点数
       // 先天体质随机
       let prob = 0.1
       this.constitutions = this.constitutions.filter(() => Math.random() < prob)
@@ -685,9 +728,13 @@ export const useUserStore = defineStore('user', {
 
       GardenModule.reset(this.gardendata) // 重置花园数据
 
+      this.passiveSkills = {} // 清空被动技能
 
+      //背包清空
+      const bag = useBagStore()
+      bag.clearBag() // 清空背包
       // 刷新页面
-      window.location.reload();
+      window.location.reload()
     },
     // 停止战斗
     stopBattle() {
@@ -802,7 +849,15 @@ export const useUserStore = defineStore('user', {
     },
 
     handleAction(action: string) {
+      if (action === '') return
       const a = ActionsMap[action]
+      if (a.disable && a.disable(this)) return
+      if (a.immediate) {
+        //立即行动
+        if (a.cost) a.cost(this)
+        if (a.effect) a.effect(this)
+        return
+      }
       if (!(action in this.actionsStatus))
         this.actionsStatus[action] = { progress: 0, cooldownRemaining: 0, pending: false }
       if (this.actionsStatus[action].cooldownRemaining > 0) {
@@ -826,6 +881,23 @@ export const useUserStore = defineStore('user', {
           this.actionsStatus[action].pending = false
         }
       }
+    },
+
+    hasPassiveSkills(name: string, level?: number): boolean {
+      if (name === '') return false
+      if (!level) level = 0
+      if (this.passiveSkills.hasOwnProperty(name) && this.passiveSkills[name].level >= level)
+        return true
+      else return false
+    },
+
+    learnPassiveSkills(name: string, level?: number) {
+      if (name === '') return
+      if (!level) level = 0
+      if (!this.passiveSkills.hasOwnProperty(name))
+        this.passiveSkills[name] = { name: name, level: 1 }
+      this.passiveSkills[name].level += level
+      this.updateActions()
     },
   },
   persist: true,

@@ -6,8 +6,13 @@
       {{ player.qiSystem.concentrationFactor }}
 
       <el-tabs v-model="activeTab" type="card" class="action-tabs" @tab-click="onTabClick">
-        <el-tab-pane v-for="(action, index) in mainActions" :key="index" :label="action.label"
-          :name="action.path || index.toString()" :disabled="isActionDisabled(action)" />
+        <el-tab-pane
+          v-for="(action, index) in mainActions"
+          :key="index"
+          :label="action.label"
+          :name="action.path || index.toString()"
+          :disabled="isActionDisabled(action)"
+        />
       </el-tabs>
 
       <el-dropdown trigger="click">
@@ -32,33 +37,45 @@
           </div>
           <br />
           <div class="realms-status">
-            <p class="card-type">{{ player.majorRealmsName() }}境 {{ player.minorRealmsName() }}</p>
-            <el-progress :show-text="false" :stroke-width="20" striped striped-flow :duration="10"
-              :percentage="realmProgress" :color="customColors"></el-progress>
+            <p class="card-type">{{ player.majorRealmsName() }} {{ player.minorRealmsName() }}</p>
+            <el-progress
+              :show-text="false"
+              :stroke-width="20"
+              striped
+              striped-flow
+              :duration="10"
+              :percentage="realmProgress"
+              :color="customColors"
+            ></el-progress>
           </div>
         </el-card>
 
-        <el-card v-if="player.processingActions.length > 0" title="行动" class="card-type" hoverable>
+        <el-card
+          v-if="player.processingActions.length > 0"
+          title="行动"
+          class="card-type"
+          hoverable
+        >
           <div class="character-head">行动</div>
-          <el-divider class="custom-divider"  border-style="dashed"/>
-          <div v-for="(action, index) in player.processingActions" :key="index" class="character-info">
+          <el-divider class="custom-divider" border-style="dashed" />
+          <div
+            v-for="(action, index) in player.processingActions"
+            :key="index"
+            class="character-info"
+          >
             {{ action }}中...
           </div>
         </el-card>
 
         <el-card v-if="resourceList.length > 0" title="资源" class="card-type" hoverable>
           <div class="character-head">资源</div>
-          <el-divider class="custom-divider"  border-style="dashed"/>
+          <el-divider class="custom-divider" border-style="dashed" />
           <div v-for="(item, index) in resourceList" :key="index" class="character-info">
             {{ item.icon }} {{ item.name }} {{ item.value }}
           </div>
         </el-card>
 
-
-
         <el-button class="bag-button" @click="showBag = true">🎒 背包</el-button>
-
-
       </el-aside>
 
       <Backpack :visible="showBag" @close="showBag = false" />
@@ -123,7 +140,6 @@ export default defineComponent({
     ])
 
     let showBag = ref(false)
-
 
     const customColors = [
       { color: '#f56c6c', percentage: 20 },
@@ -211,8 +227,6 @@ export default defineComponent({
     const isActionDisabled = (action: GameAction) => {
       return action.enable && !action.enable(player)
     }
-
-
 
     // 响应式菜单状态
 
