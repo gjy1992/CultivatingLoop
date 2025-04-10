@@ -5,7 +5,7 @@
     <div class="cultivate-panel">
       <!-- 境界状态 -->
       <div class="realm-status">
-        <h2>当前境界：{{ player.majorRealmsName() }}境 {{ player.minorRealmsName() }}</h2>
+        <h2>当前境界：{{ player.majorRealmsName() }} {{ player.minorRealmsName() }}</h2>
         <div class="progress">境界：[{{ realmProgress }}]</div>
       </div>
 
@@ -17,14 +17,21 @@
         <!-- <el-button @click="absorbQi">吸收灵气</el-button> -->
         <el-button
           @click="player.LevelUp()"
-          :disabled="!player.CanLevelUp() || player.realmStatus.minorRealm == 9"
+          :disabled="
+            !player.CanLevelUp() ||
+            player.realmStatus.minorRealm == 9 ||
+            player.realmStatus.majorRealm == 0
+          "
           class="breakthrough-btn"
         >
           突破小境界
         </el-button>
         <el-button
           @click="player.LevelUp()"
-          :disabled="!player.CanLevelUp() || player.realmStatus.minorRealm < 9"
+          :disabled="
+            !player.CanLevelUp() ||
+            (player.realmStatus.minorRealm < 9 && player.realmStatus.majorRealm > 0)
+          "
           class="breakthrough-btn"
         >
           突破大境界

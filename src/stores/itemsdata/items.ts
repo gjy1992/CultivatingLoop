@@ -1,4 +1,4 @@
-import type { ResourcesSystem } from '@/stores/user'
+import type { ResourcesSystem, UserStoreType, CombatAttributes } from '@/stores/user'
 // 物品类型枚举
 export enum ItemType {
   EQUIP = '装备',
@@ -15,12 +15,13 @@ export interface BaseItem {
   icon: string // 图标路径
   desc: string // 描述文字
   stackable: boolean // 是否可堆叠（如丹药可堆叠，装备不可）
+  useImmediately?: boolean // 是否立即使用（不进背包）
 
   value: number // 价值（用于交易等）
   currencyType: keyof ResourcesSystem // 货币类型（如铜币、灵石等）
 
-  effect?: Record<string, number> // 物品效果（用于丹药等，如 { hpRestore: 100 }）
-  stats?: Record<string, number> // 属性加成（用于装备，如 { atk: 5, def: 2 }）
+  effect?: (user: UserStoreType) => void // 物品效果（用于丹药等，如 { hpRestore: 100 }）
+  stats?: (attr: CombatAttributes) => void // 属性加成（用于装备，如 { atk: 5, def: 2 }）
 }
 
 // 所有物品总表
@@ -35,16 +36,22 @@ export const ItemDB: Record<string, BaseItem> = {
     icon: '🫘',
     desc: '恢复100气血',
     stackable: true,
-    effect: { hpRestore: 100 },
+    effect: (user) => {
+      user.combat.health.current += 100
+      user.combat.health.current = Math.min(user.combat.health.current, user.combat.health.max)
+    },
     value: 30,
     currencyType: 'money',
   },
   pill_002: {
     id: 'pill_002',
     name: '筑基丹',
+    metadata: '筑基丹',
     type: ItemType.PILL,
     icon: '🌰',
     desc: '突破到筑基必须的丹药',
+    // 需要留记录的丹药作为法术处理，其效果不放在这里的effect，放在对应法术里的apply里
+    useImmediately: true,
     stackable: false,
     value: 20,
     currencyType: 'magicStoneLow',
@@ -60,7 +67,9 @@ export const ItemDB: Record<string, BaseItem> = {
     icon: '🗡️',
     desc: '一把普通的铁剑',
     stackable: false,
-    stats: { atk: 2 },
+    stats: (attr) => {
+      attr.attack.physical += 2
+    },
     value: 50,
     currencyType: 'money',
   },
@@ -73,6 +82,7 @@ export const ItemDB: Record<string, BaseItem> = {
     name: '基础吐纳术',
     metadata: '基础吐纳术',
     type: ItemType.SKILL,
+    useImmediately: true,
     icon: '📘',
     desc: '学完之后可以打坐吸收天地灵气',
     stackable: false,

@@ -24,6 +24,7 @@ const rawShopList: (Omit<Shop, 'items'> & { items: { id: string; amount: number 
     items: [
       { id: 'pill_001', amount: 10 },
       { id: 'equip_001', amount: 1 },
+      { id: 'skill_001', amount: 1 },
     ],
   },
   {
@@ -38,7 +39,7 @@ const rawShopList: (Omit<Shop, 'items'> & { items: { id: string; amount: number 
     currency: '宗门贡献',
     currencyType: 'contribution',
     collapsed: true,
-    items: [{ id: 'skill_001', amount: 1 }],
+    items: [],
   },
 ]
 

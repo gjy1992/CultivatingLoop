@@ -6,7 +6,11 @@ import type { EnemyData } from '@/modules/enemyData'
 import EnemyList from '@/modules/enemyData'
 import type { AdventureMapData } from '@/modules/AdvMap'
 import AdventureMapList from '@/modules/AdvMap'
-import constitutionLists, { type Constitution, type ConstitutionData } from '@/modules/Constitution'
+import constitutionLists, {
+  passiveSpells,
+  type Constitution,
+  type ConstitutionData,
+} from '@/modules/Constitution'
 import ActionsMap from '@/modules/actions'
 import type { Action, ActionsData } from '@/modules/actions'
 import GardenModule from '@/modules/gardenModule'
@@ -94,7 +98,7 @@ export const currencyNameMap: Record<keyof ResourcesSystem, string> = {
   contribution: '宗门贡献', // 宗门贡献
 }
 
-export type { ResourcesSystem }
+export type { CombatAttributes, ResourcesSystem }
 
 class BattleSystem {
   // 友方
@@ -383,9 +387,14 @@ interface SkillData {
 }
 
 type UserCondition = (user: UserStoreType) => boolean
-const LevelUpRequirements: [UserCondition?] = [
-  (user) => {
+const LevelUpRequirements: (UserCondition | undefined)[] = [
+  //凡人=>练气
+  (user: UserStoreType) => {
     return user.hasPassiveSkills('基础吐纳术')
+  },
+  //练气=>筑基
+  (user: UserStoreType) => {
+    return user.hasPassiveSkills('筑基丹')
   },
 ]
 
@@ -543,6 +552,17 @@ export const useUserStore = defineStore('user', {
       return r
     },
     LevelUp(): void {
+      if (this.realmStatus.majorRealm == 0) {
+        //凡人单独处理
+        this.realmStatus.majorRealm = 1 // 增加大境界
+        this.realmStatus.minorRealm = 1 // 增加小境界
+        this.realmStatus.breakthroughAttempts = 0 // 重置突破失败次数
+        this.element.unusedPoints += 5 // 增加剩余点数
+        this.combat.health.max += 100 // 增加最大生命值
+        this.combat.mp.max += 100 // 增加最大蓝量
+        this.combat.health.current = this.combat.health.max // 重置当前生命值
+        this.combat.mp.current = this.combat.mp.max // 重置当前蓝量
+      }
       // 增加当前境界小境界
       this.realmStatus.minorRealm++
       this.qiSystem.currentQi -= this.realmStatus.requiredQi // 扣除突破所需灵气
@@ -669,18 +689,16 @@ export const useUserStore = defineStore('user', {
       this.qiSystem.lastUpdateTime = new Date().getTime() // 用于离线收益计算
       this.qiSystem.autoGainPerSec = 1 // 自动挂机速率（根据灵根计算）
       // 剩余属性点有一定程度的继承
-      this.element.unusedPoints =
-        5 +
-        Math.round(
-          Math.sqrt(
-            this.element.metalPoints +
-              this.element.firePoints +
-              this.element.woodPoints +
-              this.element.waterPoints +
-              this.element.earthPoints +
-              this.element.unusedPoints,
-          ),
-        ) // 增加剩余点数
+      this.element.unusedPoints = Math.round(
+        Math.sqrt(
+          this.element.metalPoints +
+            this.element.firePoints +
+            this.element.woodPoints +
+            this.element.waterPoints +
+            this.element.earthPoints +
+            this.element.unusedPoints,
+        ),
+      ) // 增加剩余点数
       this.element.metalPoints = 0
       this.element.woodPoints = 0
       this.element.waterPoints = 0
@@ -885,7 +903,7 @@ export const useUserStore = defineStore('user', {
 
     hasPassiveSkills(name: string, level?: number): boolean {
       if (name === '') return false
-      if (!level) level = 0
+      if (!level) level = 1
       if (this.passiveSkills.hasOwnProperty(name) && this.passiveSkills[name].level >= level)
         return true
       else return false
@@ -893,10 +911,22 @@ export const useUserStore = defineStore('user', {
 
     learnPassiveSkills(name: string, level?: number) {
       if (name === '') return
-      if (!level) level = 0
+      if (!level) level = 1
+      const skill = passiveSpells[name]
+      if (!skill) return
       if (!this.passiveSkills.hasOwnProperty(name))
-        this.passiveSkills[name] = { name: name, level: 1 }
-      this.passiveSkills[name].level += level
+        this.passiveSkills[name] = { name: name, level: 0 }
+      if (skill.apply) {
+        while (level-- > 0 && this.passiveSkills[name].level < skill.maxlevel) {
+          skill.apply(this, this.passiveSkills[name].level) // 应用技能效果
+          this.passiveSkills[name].level++
+        }
+      } else {
+        this.passiveSkills[name].level = Math.min(
+          this.passiveSkills[name].level + level,
+          skill.maxlevel,
+        )
+      }
       this.updateActions()
     },
   },

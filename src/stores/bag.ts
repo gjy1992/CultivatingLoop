@@ -16,17 +16,18 @@ export const useBagStore = defineStore('bag', {
   actions: {
     // 添加物品（自动堆叠）
     addItem(id: string, amount: number = 1) {
+      const item = ItemDB[id]
+      if (item.useImmediately) {
+        const user = useUserStore()
+        const skillname = ItemDB[id].metadata || ''
+        user.learnPassiveSkills(skillname)
+        return
+      }
       const existing = this.items.find((item) => item.id === id)
       if (existing) {
         existing.amount += amount
       } else {
         this.items.push({ id, amount })
-      }
-      //功法自动学习
-      if (id.startsWith('skill_')) {
-        const skillname = ItemDB[id].metadata || ''
-        const user = useUserStore()
-        user.learnPassiveSkills(skillname)
       }
     },
 

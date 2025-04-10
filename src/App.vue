@@ -131,7 +131,7 @@ export default defineComponent({
       { label: '闭关修炼', path: '/' },
       { label: '日常修行', path: '/action' },
       { label: '花园', path: '/garden', show: (user) => user.realmStatus.majorRealm > 1 },
-      { label: '秘境探索', path: '/map' },
+      { label: '秘境探索', path: '/map', enable: (user) => user.realmStatus.majorRealm > 1 },
       { label: '炼丹制药', path: '/alchemy', enable: () => false },
       { label: '功法参悟', path: '/comprehend', enable: () => false },
       { label: '商店', path: '/shop' },
