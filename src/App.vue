@@ -163,6 +163,7 @@ export default defineComponent({
         combatMgr.battleUpdate()
       }, combatMgr.battleInterval)
 
+      player.updateActions();
       // 判断玩家名字是否为空
       if (player.name === null || player.name === '') {
         import('element-plus').then(({ ElMessageBox }) => {

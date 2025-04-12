@@ -13,34 +13,34 @@
           <div class="card-head">
             <h3 style="text-align: center">{{ key }}</h3>
             <h5 style="text-align: center">{{ state.description }}</h5>
+            <el-divider class="custom-divider" border-style="dashed" />
           </div>
-
-          <el-divider class="custom-divider" border-style="dashed" />
 
           <div class="card-content">
             <p class="sub-action">{{ state.currentSubAction?.name || '无' }}</p>
             <p class="description">{{ state.currentSubAction?.description || '无描述' }}</p>
           </div>
 
-          <el-progress
-            class="card-progress"
-            :percentage="getProgressPercent(key as string)"
-            :text-inside="true"
-            :stroke-width="18"
-            status="success"
-          />
-          <p class="description" style="text-align: center">
-            {{ state.autoUnlocked ? '当前可自动进行' : '当前不可自动进行' }}
-          </p>
+          <div class="card-foot">
+            <el-progress
+              class="card-progress"
+              :percentage="getProgressPercent(key as string)"
+              :text-inside="true"
+              :stroke-width="18"
+              status="success"
+            />
+            <p class="description" style="text-align: center">
+              {{ state.autoUnlocked ? '当前可自动进行' : '当前不可自动进行' }}
+            </p>
+          </div>
         </el-card>
       </div>
     </div>
 
     <div class="button-section">
-      <el-button type="primary" @click="handleAction" class="button-do" >
-        <div  >执行行动(空格)</div>
+      <el-button type="primary" @click="handleAction" class="button-do">
+        <div>执行行动(空格)</div>
       </el-button>
-      
     </div>
 
     <div class="log-section">
@@ -139,19 +139,34 @@ onBeforeUnmount(() => {
   height: 100%;
   transition: all 0.3s ease;
 }
+::v-deep(.el-card__body) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 
 .action-card.active {
   background-color: #f0f9ff;
 }
 
-.card-content {
+.card-head {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  padding: 8px;
+  justify-content: center;
 }
 
+.card-content {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+}
+.card-foot{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 .sub-action {
   font-weight: bold;
   font-size: 16px;
@@ -164,9 +179,6 @@ onBeforeUnmount(() => {
   margin: 0;
 }
 
-.action-progress {
-  margin-bottom: 4px;
-}
 
 .button-section {
   flex: 1;
@@ -174,15 +186,15 @@ onBeforeUnmount(() => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 100vh;     
+  height: 100vh;
 }
-.button-do{
+.button-do {
   display: flex;
-  flex-direction: column;  /* 垂直排列 */
+  flex-direction: column; /* 垂直排列 */
   justify-content: center; /* 垂直居中 */
-  align-items: center;     /* 水平居中 */
-  height: 100%;            /* 确保按钮高度足够 */
-  padding: 10px 20px;      /* 给按钮一些内边距 */
+  align-items: center; /* 水平居中 */
+  height: 100%; /* 确保按钮高度足够 */
+  padding: 10px 20px; /* 给按钮一些内边距 */
 }
 
 .log-section {

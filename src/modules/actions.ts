@@ -33,16 +33,16 @@ interface ActionState {
 }
 
 export const ActionsMap: Record<string, Action> = {
-  跑腿: {
-    name: '跑腿',
-    description: '只要996，月入三十万不是梦',
+  打工: {
+    name: '打工',
+    description: '打工是不可能打工的，这辈子都不会……',
     progress: 10,
     unlock: (user) => true,
     autoUnlock: (user) => user.realmStatus.majorRealm >= 1,
     actions: [
       {
-        name: '普通跑腿',
-        description: '收益：10~20铜币，消耗1点生命值',
+        name: '跑腿',
+        description: '只要996，月入三十万不是梦,每次随机收获10~20块',
         unlock: (user) => true,
         cost: (user) => {
           user.combat.health.current -= 1
@@ -67,7 +67,7 @@ export const ActionsMap: Record<string, Action> = {
     actions: [
       {
         name: '独自修行',
-        description: '孤独的修行',
+        description: '孤独的修行，吸收天地之灵气，每次增长10点灵气',
         unlock: (user) => user.hasPassiveSkills('基础吐纳术'),
         effect: (user) => {
           user.qiSystem.currentQi += 10
@@ -78,7 +78,7 @@ export const ActionsMap: Record<string, Action> = {
       },
       {
         name: '外院打坐',
-        description: '在宗门外院灵气聚地打坐，收益更高',
+        description: '在宗门外院灵气聚地打坐，收益更高，每次增长25点灵气',
         unlock: (user) => user.realmStatus.majorRealm >= 1,
         effect: (user) => {
           user.qiSystem.currentQi += 25
@@ -89,7 +89,7 @@ export const ActionsMap: Record<string, Action> = {
       },
       {
         name: '内院打坐',
-        description: '在宗门内院灵气聚地打坐，收益更高',
+        description: '在宗门内院灵气聚地打坐，收益更高，每次增长50点灵气',
         unlock: (user) => user.realmStatus.majorRealm >= 2,
         effect: (user) => {
           user.qiSystem.currentQi += 50
@@ -109,8 +109,8 @@ export const ActionsMap: Record<string, Action> = {
     autoUnlock: (user) => user.hasPassiveSkills('自动碎石'),
     actions: [
       {
-        name: '普通碎石',
-        description: '收益：2铜币，10%获得下品灵石；消耗5点生命',
+        name: '小锤试炼',
+        description: '小锤扣缝，每次赚2块，还有几率挖出灵石',
         unlock: (user) => true,
         effect: (user) => {
           user.resources.money += 2
@@ -130,11 +130,11 @@ export const ActionsMap: Record<string, Action> = {
     description: '吃药吃药，若论出身，更不公道',
     progress: 10,
     unlock: (user) => user.realmStatus.majorRealm >= 2,
-    autoUnlock: (user) => user.hasPassiveSkills('自动碎石'),
+    autoUnlock: (user) => user.hasPassiveSkills('自动炼丹'),
     actions: [
       {
         name: '随便练练',
-        description: '收益：2铜币，10%获得下品灵石；消耗5点生命',
+        description: '啥草药都往里怼啊！每次赚2块，10%获得下品灵石；消耗5点生命',
         unlock: (user) => true,
         cost: (user) => {
           user.combat.health.current -= 5
@@ -158,14 +158,14 @@ export const ActionsMap: Record<string, Action> = {
 
   种植: {
     name: '种植',
-    description: '月壤不能种地？那没意思了',
+    description: '你种与不种，地都在那里，不离不弃',
     progress: 10,
     unlock: (user) => user.realmStatus.majorRealm * 10 + user.realmStatus.minorRealm >= 15,
-    autoUnlock: (user) => user.hasPassiveSkills('自动碎石'),
+    autoUnlock: (user) => user.hasPassiveSkills('自动种植'),
     actions: [
       {
-        name: '大萝贝！',
-        description: '收益：2铜币，10%获得下品灵石；消耗5点生命',
+        name: '荒田开垦',
+        description: '锄禾日当午,汗滴禾下土！每次收获2块，10%获得下品灵石；消耗5点生命',
         unlock: (user) => true,
         cost: (user) => {
           user.combat.health.current -= 5

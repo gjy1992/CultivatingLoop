@@ -416,8 +416,8 @@ export const useUserStore = defineStore('user', {
       contribution: 0, // 宗门贡献
     }),
     realmStatus: reactive<RealmStatus>({
-      majorRealm: 1, // 大境界（1-7对应文档境界体系）
-      minorRealm: 1, // 小境界（1-9）
+      majorRealm: 0, // 大境界（1-7对应文档境界体系）
+      minorRealm: 0, // 小境界（1-9）
       requiredQi: 100, // 当前突破所需灵气（根据文档Q(R,r)公式计算）
       breakthroughAttempts: 0, // 当前连续突破失败次数（用于衰减补偿）
     }),
@@ -551,7 +551,7 @@ export const useUserStore = defineStore('user', {
       if (this.realmStatus.majorRealm == 0) {
         //凡人单独处理
         this.realmStatus.majorRealm = 1 // 增加大境界
-        this.realmStatus.minorRealm = 1 // 增加小境界
+        this.realmStatus.minorRealm = 0 // 增加小境界
         this.realmStatus.breakthroughAttempts = 0 // 重置突破失败次数
         this.element.unusedPoints += 5 // 增加剩余点数
         this.combat.health.max += 100 // 增加最大生命值
