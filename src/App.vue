@@ -51,7 +51,7 @@
         </el-card>
 
         <el-card
-          v-if="player.processingActions.length > 0"
+          v-if="player.currentActionCategory !== 'none'"
           title="行动"
           class="card-type"
           hoverable
@@ -59,11 +59,10 @@
           <div class="character-head">行动</div>
           <el-divider class="custom-divider" border-style="dashed" />
           <div
-            v-for="(action, index) in player.processingActions"
-            :key="index"
+            v-if="player.currentActionCategory!=null"
             class="character-info"
           >
-            {{ action }}中...
+            {{ player.actionStateMap[player.currentActionCategory]?.autoUnlocked? player.currentActionCategory :"闲逛中" }}
           </div>
         </el-card>
 
@@ -130,7 +129,6 @@ export default defineComponent({
     const mainActions: GameAction[] = reactive([
       { label: '闭关修炼', path: '/' },
       { label: '日常修行', path: '/action' },
-      { label: '花园', path: '/garden', show: (user) => user.realmStatus.majorRealm > 1 },
       { label: '秘境探索', path: '/map', enable: (user) => user.realmStatus.majorRealm > 1 },
       { label: '炼丹制药', path: '/alchemy', enable: () => false },
       { label: '功法参悟', path: '/comprehend', enable: () => false },
@@ -178,6 +176,7 @@ export default defineComponent({
             .then(({ value }) => {
               // 用户点击确定，设置玩家名字
               player.name = value
+              player.updateActions();
             })
             .catch(() => {
               // 用户点击取消，可根据需求处理

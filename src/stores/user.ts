@@ -11,11 +11,12 @@ import constitutionLists, {
   type Constitution,
   type ConstitutionData,
 } from '@/modules/Constitution'
-import ActionsMap from '@/modules/actions'
-import type { Action, ActionsData } from '@/modules/actions'
 import GardenModule from '@/modules/gardenModule'
 import type { GardenData } from '@/modules/gardenModule'
 import { useBagStore } from './bag'
+import ActionsMap, { type ActionState, type SubAction } from '@/modules/actions'
+import { useLogStore } from './log'; // 路径根据你项目结构调整
+
 
 const Param = {
   Q0: 200, // 炼体境第一层基础值（建议100~500）
@@ -97,6 +98,7 @@ export const currencyNameMap: Record<keyof ResourcesSystem, string> = {
   maxHerbs: '高级草药', //高级草药，炼丹 存储量为仓库等级*10
   contribution: '宗门贡献', // 宗门贡献
 }
+
 
 export type { CombatAttributes, ResourcesSystem }
 
@@ -462,22 +464,16 @@ export const useUserStore = defineStore('user', {
     timer: 0, // 定时器
     updateInterval: 500, // 更新间隔（毫秒）
     constitutions: reactive<ConstitutionData[]>([]), //体质
-    actions: reactive<string[]>([]), // 可用技能
-    processingActions: reactive<string[]>([]), // 正在处理的技能
-    maxProcessingActions: 1, // 最大正在处理技能数量
-    actionsStatus: reactive<Record<string, ActionsData>>({}),
+
     clearedMaps: reactive<string[]>([]), // 通关的地图记录
     currentBattleMap: '', // 当前战斗地图
-    gardendata: reactive<GardenData>({
-      slots: [],
-      maxSlots: 9, // 最大槽位数
-      level: 1,
-      experience: 0,
-      experienceToNextLevel: 0,
-      upgradeCost: 0,
-    }), //花园数据
     //心法和被动技能
     passiveSkills: reactive<Record<string, SkillData>>({}), //被动技能
+
+    // 行动
+    actionStateMap: {} as Record<string, ActionState>,
+    tickProgressMap: {} as Record<string, number>, // 每个 action 的进度
+    currentActionCategory: '' as string, // 当前激活的 action（手动用）
   }),
   actions: {
     // majorRealmsName
@@ -692,11 +688,11 @@ export const useUserStore = defineStore('user', {
       this.element.unusedPoints = Math.round(
         Math.sqrt(
           this.element.metalPoints +
-            this.element.firePoints +
-            this.element.woodPoints +
-            this.element.waterPoints +
-            this.element.earthPoints +
-            this.element.unusedPoints,
+          this.element.firePoints +
+          this.element.woodPoints +
+          this.element.waterPoints +
+          this.element.earthPoints +
+          this.element.unusedPoints,
         ),
       ) // 增加剩余点数
       this.element.metalPoints = 0
@@ -737,20 +733,24 @@ export const useUserStore = defineStore('user', {
       this.combat.recoveryTime = 60 // 复活时间
 
       this.updateActions() // 更新可用技能
-      this.processingActions = [] // 清空正在处理的技能
-      this.actionsStatus = {}
-      this.timer = 0 // 定时器
+
+      this.actionStateMap = {} // 清空正在处理的技能
+      this.tickProgressMap = {} // 每个 action 的进度
+      this.currentActionCategory = '', // 当前激活的 action（手动用）
+
+        this.timer = 0 // 定时器
       this.updateInterval = 500
       this.clearedMaps = [] // 通关的地图记录
       this.currentBattleMap = '' // 当前战斗地图
 
-      GardenModule.reset(this.gardendata) // 重置花园数据
 
       this.passiveSkills = {} // 清空被动技能
 
       //背包清空
       const bag = useBagStore()
       bag.clearBag() // 清空背包
+
+      this.$reset(); // Pinia 自带的重置方法，用于重置所有状态
       // 刷新页面
       window.location.reload()
     },
@@ -763,73 +763,64 @@ export const useUserStore = defineStore('user', {
 
     // 挂机逻辑
     updateTick() {
+      const seconds = this.updateInterval / 1000
+
+      // 系数相关（你可以改成其他条件）
       let coef = 1
-      if (this.constitutions.find((a) => a.name == '天灵根') !== undefined) coef += 2
-      if (this.constitutions.find((a) => a.name == '先天道体') !== undefined) coef += 1
+      if (this.constitutions.find((a) => a.name == '天灵根')) coef += 2
+      if (this.constitutions.find((a) => a.name == '先天道体')) coef += 1
+
+      // 境界高于练气期才有被动恢复灵气
       if (this.realmStatus.majorRealm > 1) {
         this.qiSystem.currentQi +=
           coef *
           this.qiSystem.autoGainPerSec *
           this.qiSystem.concentrationFactor *
-          (this.updateInterval / 1000)
+          seconds
       }
-      // 花园
-      GardenModule.updateTick(this.updateInterval / 1000, this, this.gardendata)
-      // 如果在战斗，那么行动暂停
-      if (combatMgr.currentMap) {
-      } else {
-        // 战斗外五倍回复
-        this.combat.health.current +=
-          ((this.combat.health.regenPerSec * this.updateInterval) / 1000) * 5
-        this.combat.health.current = Math.min(this.combat.health.current, this.combat.health.max)
-        this.combat.mp.current += ((this.combat.mp.regenPerSec * this.updateInterval) / 1000) * 5
-        this.combat.mp.current = Math.min(this.combat.mp.current, this.combat.mp.max)
-        this.processingActions.forEach((a) => {
-          const action = ActionsMap[a]
-          const actionData = this.actionsStatus[a]
-          if (actionData.pending) {
-            actionData.cooldownRemaining -= this.updateInterval / 1000 // 更新冷却时间
-            if (actionData.cooldownRemaining <= 0) {
-              //准备再次执行行动，此时要重新检查是否可用
-              if (action.disable && action.disable(this)) {
-                //临时禁用，等待可用时机
-                actionData.cooldownRemaining = 0
-                actionData.progress = 0
-              } else {
-                if (action.cost) action.cost(this)
-                actionData.progress = 0
-                actionData.cooldownRemaining = action.cooldown // 重置冷却时间
-                actionData.pending = false
-              }
-            }
-          } else {
-            actionData.progress += this.updateInterval / 1000 // 更新进度
-            actionData.cooldownRemaining -= this.updateInterval / 1000 // 更新冷却时间
-            if (actionData.progress >= action.duration) {
-              actionData.progress = action.duration
-              if (action.effect) {
-                action.effect(this) // 执行效果
-              }
-              actionData.pending = true
-              if (actionData.cooldownRemaining <= 0) {
-                //准备再次执行行动，此时要重新检查是否可用
-                if (action.disable && action.disable(this)) {
-                  //临时禁用，等待可用时机
-                  actionData.cooldownRemaining = 0
-                  actionData.progress = 0
-                } else {
-                  if (action.cost) action.cost(this)
-                  actionData.progress = 0
-                  actionData.cooldownRemaining = action.cooldown // 重置冷却时间
-                  actionData.pending = false
-                }
-              }
-            } else if (actionData.cooldownRemaining <= 0) {
-              actionData.cooldownRemaining = this.updateInterval / 1000
-            }
-          }
-        })
+
+      // 战斗中不进行行动
+      if (combatMgr.currentMap) return
+
+      // 战斗外五倍回血回蓝
+      this.combat.health.current += (this.combat.health.regenPerSec * seconds) * 5
+      this.combat.health.current = Math.min(this.combat.health.current, this.combat.health.max)
+      this.combat.mp.current += (this.combat.mp.regenPerSec * seconds) * 5
+      this.combat.mp.current = Math.min(this.combat.mp.current, this.combat.mp.max)
+
+
+
+      if (!this.currentActionCategory) return;
+
+      const currentAction = this.actionStateMap[this.currentActionCategory] ?? null;
+      if (!currentAction) return;
+
+      const currentSubAction = currentAction.currentSubAction;
+      if (!currentSubAction) return;
+
+      // === 1. 自动行为处理 ===
+      if (currentAction.autoUnlocked) {
+        // 增加进度
+        const progress = currentAction.progress ?? 10 // 默认为10
+        const currentProgress = this.tickProgressMap[this.currentActionCategory] ?? 0
+        const newProgress = currentProgress + 1
+        this.tickProgressMap[this.currentActionCategory] = newProgress
+
+        // 如果达到进度条上限，就触发一次效果
+        if (newProgress >= progress) {
+          // 资源消耗
+          if (currentSubAction.cost) currentSubAction.cost(this)
+          // 效果处理
+          if (currentSubAction.effect) currentSubAction.effect(this)
+          // 重置进度条
+          this.tickProgressMap[this.currentActionCategory] = 0
+
+          logDisplay('执行了一次' + this.currentActionCategory + '行动');
+        }
       }
+
+
+
       this.qiSystem.lastUpdateTime += this.updateInterval
     },
 
@@ -844,62 +835,76 @@ export const useUserStore = defineStore('user', {
       this.stopBattle()
     },
 
+
     updateActions() {
-      const actions: string[] = []
-      Object.entries(ActionsMap).forEach(([k, a]) => {
-        if (
-          a.minmajorRealm <= this.realmStatus.majorRealm &&
-          a.maxmajorRealm >= this.realmStatus.majorRealm
-        ) {
-          if (a.unlock && !a.unlock(this)) return
-          actions.push(a.name)
-        }
-      })
-      this.actions = actions
-      this.processingActions = this.processingActions.filter((a) => actions.includes(a))
-      this.processingActions.forEach((a) => {
-        if (!(a in this.actionsStatus))
-          this.actionsStatus[a] = { progress: 0, cooldownRemaining: 0, pending: false }
-      })
-      Object.entries(this.actionsStatus).forEach(([k, v]) => {
-        if (!actions.includes(k)) delete this.actionsStatus[k]
-      })
-    },
+      for (const [key, action] of Object.entries(ActionsMap)) {
+        // 判断主行动是否解锁
+        const unlocked = action.unlock ? action.unlock(this) : true
+        if (!unlocked) continue
 
-    handleAction(action: string) {
-      if (action === '') return
-      const a = ActionsMap[action]
-      if (a.disable && a.disable(this)) return
-      if (a.immediate) {
-        //立即行动
-        if (a.cost) a.cost(this)
-        if (a.effect) a.effect(this)
-        return
-      }
-      if (!(action in this.actionsStatus))
-        this.actionsStatus[action] = { progress: 0, cooldownRemaining: 0, pending: false }
-      if (this.actionsStatus[action].cooldownRemaining > 0) {
-        return
-      }
-      this.processingActions.push(action)
-      if (a.cost) a.cost(this)
-      this.actionsStatus[action].progress = 0
-      this.actionsStatus[action].cooldownRemaining = a.cooldown
-      if (this.processingActions.length > this.maxProcessingActions) {
-        this.cancelAction(this.processingActions[0]) // 取消第一个技能
-      }
-    },
+        // 判断是否解锁自动功能
+        const autoUnlocked =
+          typeof action.autoUnlock === 'function'
+            ? action.autoUnlock(this)
+            : !!action.autoUnlock
 
-    cancelAction(action: string) {
-      if (this.processingActions.includes(action)) {
-        this.processingActions.splice(this.processingActions.indexOf(action, 0), 1)
-        if (action in this.actionsStatus) {
-          this.actionsStatus[action].progress = 0
-          this.actionsStatus[action].cooldownRemaining = 0
-          this.actionsStatus[action].pending = false
+        // 筛选出已解锁的子行动（保留顺序）
+        const unlockedSubActions = action.actions.filter(
+          (sub) => !sub.unlock || sub.unlock(this)
+        )
+
+        // 选出数组中最靠后的一个子行动（优先度最高）
+        const currentSubAction =
+          unlockedSubActions.length > 0
+            ? unlockedSubActions[unlockedSubActions.length - 1]
+            : null
+
+        // 写入新状态
+        this.actionStateMap[key] = {
+          key,
+          unlocked: true,
+          description: action.description,
+          autoUnlocked: autoUnlocked,
+          currentSubAction,
+          progress: action.progress,
+          isActive: false,
         }
       }
     },
+
+    handleAction() {
+      const categoryKey = this.currentActionCategory;
+      if (!categoryKey) return;
+
+      const currentAction = this.actionStateMap[this.currentActionCategory] ?? null;
+      if (!currentAction) return;
+
+      const currentSubAction = currentAction.currentSubAction;
+      if (!currentSubAction) return;
+
+      // 初始化进度（若未定义则设为 0）
+      this.tickProgressMap[categoryKey] ??= 0;
+
+      // 增加进度
+      this.tickProgressMap[categoryKey]++;
+
+      const requiredProgress = currentAction.progress ?? 10;
+      if (this.tickProgressMap[categoryKey] >= requiredProgress) {
+        currentSubAction.cost?.(this);
+        currentSubAction.effect?.(this);
+        this.tickProgressMap[categoryKey] = 0;
+        logDisplay('执行了一次' + this.currentActionCategory + '行动');
+      }
+    },
+
+    cancelAction(actionKey: string) {
+      if (this.currentActionCategory === actionKey) {
+        this.currentActionCategory = ''
+        this.tickProgressMap[actionKey] = 0
+      }
+    },
+
+
 
     hasPassiveSkills(name: string, level?: number): boolean {
       if (name === '') return false
@@ -932,5 +937,10 @@ export const useUserStore = defineStore('user', {
   },
   persist: true,
 })
+
+function logDisplay(message: string) {
+  const logStore = useLogStore(); 
+  logStore.addLog(message);
+}
 
 export type UserStoreType = ReturnType<typeof useUserStore>

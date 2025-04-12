@@ -1,99 +1,221 @@
 <template>
-  <div class="actions-view">
-    <h3>行动界面</h3>
-    <div class="actions-container">
-      <div v-for="action in player.processingActions" class="action-item">
-        {{ action }}
-        <el-progress
-          :percentage="
-            Math.round((player.actionsStatus[action].progress / ActionsMap[action].duration) * 100)
-          "
-          class="progress-bar"
-        />
+  <div class="action-page">
+    <div class="card-section">
+      <div class="card-container">
+        <el-card
+          v-for="(state, key) in unlockedActions"
+          :key="key"
+          class="action-card"
+          :class="{ active: currentCategory === key }"
+          @click="selectCategory(key as string)"
+          shadow="hover"
+        >
+          <div class="card-head">
+            <h3 style="text-align: center">{{ key }}</h3>
+            <h5 style="text-align: center">{{ state.description }}</h5>
+          </div>
+
+          <el-divider class="custom-divider" border-style="dashed" />
+
+          <div class="card-content">
+            <p class="sub-action">{{ state.currentSubAction?.name || '无' }}</p>
+            <p class="description">{{ state.currentSubAction?.description || '无描述' }}</p>
+          </div>
+
+          <el-progress
+            class="card-progress"
+            :percentage="getProgressPercent(key as string)"
+            :text-inside="true"
+            :stroke-width="18"
+            status="success"
+          />
+          <p class="description" style="text-align: center">
+            {{ state.autoUnlocked ? '当前可自动进行' : '当前不可自动进行' }}
+          </p>
+        </el-card>
       </div>
     </div>
-    <div class="actions-list">
-      <div v-for="action in player.actions" class="action-item">
-        <el-button
-          type="primary"
-          @click="handleAction(action)"
-          :title="ActionsMap[action].description"
-          :disabled="isActionDisabled(action)"
-          :class="{ 'is-selected': player.processingActions.includes(action) }"
-        >
-          {{ action }}
-        </el-button>
+
+    <div class="button-section">
+      <el-button type="primary" @click="handleAction" class="button-do" >
+        <div  >执行行动(空格)</div>
+      </el-button>
+      
+    </div>
+
+    <div class="log-section">
+      <div class="log-content">
+        <p v-for="(log, index) in logStore.logs" :key="index">
+          {{ log }}
+        </p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useUserStore } from '../stores/user' // 假设使用Pinia状态管理
-import type { Constitution, ConstitutionData } from '@/modules/Constitution'
-import constitutionLists from '@/modules/Constitution'
-import { ElButton } from 'element-plus'
-import ActionsMap from '@/modules/actions'
-import { acceptHMRUpdate } from 'pinia'
+import { computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { useLogStore } from '@/stores/log'
 
-// 境界状态
-const player = useUserStore()
-player.updateActions()
+const userStore = useUserStore()
+const logStore = useLogStore()
+const route = useRoute()
 
-const handleAction = (action: string) => {
-  if (player.processingActions.includes(action)) player.cancelAction(action)
-  else player.handleAction(action)
+// 当前选中的行动分类
+const currentCategory = computed(() => userStore.currentActionCategory)
+
+// 所有已解锁的行动
+const unlockedActions = computed(() =>
+  Object.fromEntries(
+    Object.entries(userStore.actionStateMap).filter(([_, state]) => state.unlocked),
+  ),
+)
+
+// 当前进度百分比（默认为最大10）
+const getProgressPercent = (key: string) => {
+  const current = userStore.tickProgressMap[key] ?? 0
+  const max = userStore.actionStateMap[key]?.progress ?? 10
+  return Math.min(100, Math.floor((current / max) * 100))
 }
 
-const isActionDisabled = (action: string) => {
-  if (player.processingActions.includes(action)) return false
-  return (
-    (ActionsMap[action].disable && ActionsMap[action].disable(player)) ||
-    (action in player.actionsStatus && player.actionsStatus[action].cooldownRemaining > 0)
-  )
+// 选择某个主行动
+const selectCategory = (key: string) => {
+  userStore.currentActionCategory = key
 }
+
+// 执行行动
+const handleAction = () => {
+  userStore.handleAction()
+}
+
+// 监听空格键触发行动（仅当前路由是 action 页时生效）
+const handleKeyPress = (e: KeyboardEvent) => {
+  if (route.name === 'action') {
+    if (e.code === 'Space') {
+      e.preventDefault()
+      handleAction()
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyPress)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeyPress)
+})
 </script>
 
 <style scoped>
-.actions-view {
+.action-page {
   background-color: #f0f0f0;
-  width: 100%;
-  max-width: 100%;
   border-radius: 15px;
-}
-
-.header {
-  margin-bottom: 20px;
-}
-
-.actions-container {
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  margin-top: 2rem;
 }
 
-.actions-list {
+.card-section {
+  flex: 5;
+  padding: 10px;
+  overflow: hidden;
+}
+
+.card-container {
   display: flex;
-  flex-direction: row;
-  gap: 20px;
-  margin-top: 2rem;
+  flex-wrap: wrap;
+  gap: 16px;
+  height: 100%;
+  overflow-y: auto;
 }
 
-.action-item {
+.action-card {
+  flex: 0 0 calc(19%);
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  height: 100%;
+  transition: all 0.3s ease;
 }
 
-.progress-bar {
+.action-card.active {
+  background-color: #f0f9ff;
+}
+
+.card-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 8px;
 }
 
-.is-selected {
-  background-color: #d3f9d8;
-  border: 1px solid #a3e635;
-  color: #065f46;
+.sub-action {
+  font-weight: bold;
+  font-size: 16px;
+  text-align: center;
+}
+
+.description {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+.action-progress {
+  margin-bottom: 4px;
+}
+
+.button-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;     
+}
+.button-do{
+  display: flex;
+  flex-direction: column;  /* 垂直排列 */
+  justify-content: center; /* 垂直居中 */
+  align-items: center;     /* 水平居中 */
+  height: 100%;            /* 确保按钮高度足够 */
+  padding: 10px 20px;      /* 给按钮一些内边距 */
+}
+
+.log-section {
+  flex: 4;
+  background-color: #f9f9f9;
+  overflow-y: auto;
+  margin: 10px;
+}
+
+.log-content {
+  font-size: 14px;
+  color: #333;
+}
+
+/* 响应式优化（保持原样或微调） */
+@media (max-width: 1200px) {
+  .action-card {
+    flex: 0 0 25%;
+  }
+}
+@media (max-width: 900px) {
+  .action-card {
+    flex: 0 0 33.33%;
+  }
+}
+@media (max-width: 600px) {
+  .action-card {
+    flex: 0 0 50%;
+  }
+}
+@media (max-width: 400px) {
+  .action-card {
+    flex: 0 0 100%;
+  }
 }
 </style>
