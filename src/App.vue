@@ -127,7 +127,7 @@ export default defineComponent({
 
     // 主操作列表[4,9](@ref)
     const mainActions: GameAction[] = reactive([
-      { label: '闭关修炼', path: '/' },
+      { label: '个人属性', path: '/' },
       { label: '日常修行', path: '/action' },
       { label: '秘境探索', path: '/map', enable: (user) => user.realmStatus.majorRealm > 1 },
       { label: '炼丹制药', path: '/alchemy', enable: () => false },

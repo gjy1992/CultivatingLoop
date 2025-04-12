@@ -388,15 +388,16 @@ interface SkillData {
   level: number // 技能等级
 }
 
-type UserCondition = (user: UserStoreType) => boolean
-const LevelUpRequirements: (UserCondition | undefined)[] = [
-  //凡人=>练气
-  (user: UserStoreType) => {
-    return user.hasPassiveSkills('基础吐纳术')
-  },
+type LevelUpRequirement = {
+  check: (user: UserStoreType) => boolean
+  description: string
+}
+
+const LevelUpRequirements: (LevelUpRequirement | undefined)[] = [
   //练气=>筑基
-  (user: UserStoreType) => {
-    return user.hasPassiveSkills('筑基丹')
+  {
+    check: (user) => user.hasPassiveSkills('筑基丹'),
+    description: '需要购买 筑基丹 ',
   },
 ]
 
@@ -538,14 +539,28 @@ export const useUserStore = defineStore('user', {
         return -1 // 死亡
       }
     },
-    CanLevelUp(): boolean {
-      // 判断是否可以突破
-      let r = this.qiSystem.currentQi >= this.realmStatus.requiredQi
-      if (this.realmStatus.minorRealm == 9 || this.realmStatus.majorRealm == 0) {
-        const req_func = LevelUpRequirements[this.realmStatus.majorRealm]
-        if (req_func) r = r && req_func(this)
+    CanLevelUp(): { can: boolean; reason?: string } {
+      if (this.realmStatus.minorRealm === 0 && this.qiSystem.currentQi === 0) {
+        return { can: false, reason: "需要学习《基础吐纳术》并开始修行" };
       }
-      return r
+      const hasEnoughQi = this.qiSystem.currentQi >= this.realmStatus.requiredQi
+      let can = hasEnoughQi
+      let reason = ''
+
+      const requirement = LevelUpRequirements[this.realmStatus.majorRealm-1]
+
+      if (this.realmStatus.minorRealm === 9) {
+        if (requirement && !requirement.check(this)) {
+          can = false
+          reason = requirement.description
+        }
+      }
+
+      if (!hasEnoughQi) {
+        reason = '灵气不足'
+      }
+
+      return { can, reason }
     },
     LevelUp(): void {
       if (this.realmStatus.majorRealm == 0) {
@@ -939,7 +954,7 @@ export const useUserStore = defineStore('user', {
 })
 
 function logDisplay(message: string) {
-  const logStore = useLogStore(); 
+  const logStore = useLogStore();
   logStore.addLog(message);
 }
 

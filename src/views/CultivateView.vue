@@ -6,7 +6,6 @@
       <!-- 境界状态 -->
       <div class="realm-status">
         <h2>当前境界：{{ player.majorRealmsName() }} {{ player.minorRealmsName() }}</h2>
-        <div class="progress">境界：[{{ realmProgress }}]</div>
       </div>
 
       <!-- 灵气操作 -->
@@ -14,27 +13,13 @@
         <p>灵气浓度：{{ Math.round(player.qiSystem.concentrationFactor * 100) }}%</p>
         <p>当前灵气：{{ Math.round(player.qiSystem.currentQi) }}</p>
         <p>突破需要：{{ player.realmStatus.requiredQi }}</p>
-        <!-- <el-button @click="absorbQi">吸收灵气</el-button> -->
         <el-button
           @click="player.LevelUp()"
-          :disabled="
-            !player.CanLevelUp() ||
-            player.realmStatus.minorRealm == 9 ||
-            player.realmStatus.majorRealm == 0
-          "
+          :disabled="!breakthroughInfo.can"
           class="breakthrough-btn"
+          :style="{ color: player.CanLevelUp().can ? '#ffd700' : '#ffffff' }"
         >
-          突破小境界
-        </el-button>
-        <el-button
-          @click="player.LevelUp()"
-          :disabled="
-            !player.CanLevelUp() ||
-            (player.realmStatus.minorRealm < 9 && player.realmStatus.majorRealm > 0)
-          "
-          class="breakthrough-btn"
-        >
-          突破大境界
+          {{ breakthroughInfo.reason ? breakthroughInfo.reason : '突破' }}
         </el-button>
       </div>
 
@@ -111,10 +96,7 @@ import { ElButton } from 'element-plus'
 const player = useUserStore()
 
 // 计算属性[2,5](@ref)
-const realmProgress = computed(() => {
-  const progress = player.realmStatus.minorRealm
-  return '■'.repeat(progress) + '□'.repeat(9 - progress)
-})
+const breakthroughInfo = computed(() => player.CanLevelUp())
 
 // 突破境界方法
 const startBreakThrough = () => {
@@ -176,7 +158,7 @@ const constitutionHint = (v: ConstitutionData) => {
 
 .breakthrough-btn {
   padding: 8px 20px;
-  background: #7cb342;
+  background: #2c2f3a;
   border: none;
   cursor: pointer;
   transition: opacity 0.3s;
