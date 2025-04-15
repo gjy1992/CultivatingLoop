@@ -15,8 +15,7 @@ import GardenModule from '@/modules/gardenModule'
 import type { GardenData } from '@/modules/gardenModule'
 import { useBagStore } from './bag'
 import ActionsMap, { type ActionState, type SubAction } from '@/modules/actions'
-import { useLogStore } from './log'; // 路径根据你项目结构调整
-
+import { useLogStore } from './log' // 路径根据你项目结构调整
 
 const Param = {
   Q0: 200, // 炼体境第一层基础值（建议100~500）
@@ -99,7 +98,6 @@ export const currencyNameMap: Record<keyof ResourcesSystem, string> = {
   contribution: '宗门贡献', // 宗门贡献
 }
 
-
 export type { CombatAttributes, ResourcesSystem }
 
 class BattleSystem {
@@ -132,13 +130,13 @@ class BattleSystem {
     }
     // 更新血量和蓝量
     for (const unit of [...this.allies, ...this.enemies]) {
-      unit.current.health.current =
-        unit.current.health.current + unit.current.health.regenPerSec * dt
+      unit.current.health_current =
+        unit.current.health_current + unit.current.health_regenPerSec * dt
       // 限制血量不超过最大值
-      unit.current.health.current = Math.min(unit.current.health.current, unit.current.health.max)
-      unit.current.mp.current = unit.current.mp.current + unit.current.mp.regenPerSec * dt
+      unit.current.health_current = Math.min(unit.current.health_current, unit.current.health_max)
+      unit.current.mp_current = unit.current.mp_current + unit.current.mp_regenPerSec * dt
       // 限制蓝量不超过最大值
-      unit.current.mp.current = Math.min(unit.current.mp.current, unit.current.mp.max)
+      unit.current.mp_current = Math.min(unit.current.mp_current, unit.current.mp_max)
     }
     // 更新行动条进度
     const allUnits = [...this.allies, ...this.enemies]
@@ -157,13 +155,13 @@ class BattleSystem {
     }
     // 更新回血量和蓝量
     for (const unit of [...this.allies, ...this.enemies]) {
-      unit.original.health.current = unit.current.health.current
-      unit.original.health.current = Math.min(
-        unit.original.health.current,
-        unit.original.health.max,
+      unit.original.health_current = unit.current.health_current
+      unit.original.health_current = Math.min(
+        unit.original.health_current,
+        unit.original.health_max,
       )
-      unit.original.mp.current = unit.current.mp.current
-      unit.original.mp.current = Math.min(unit.original.mp.current, unit.original.mp.max)
+      unit.original.mp_current = unit.current.mp_current
+      unit.original.mp_current = Math.min(unit.original.mp_current, unit.original.mp_max)
     }
   }
   executeAction(unit: BattleAttributes) {
@@ -183,11 +181,11 @@ class BattleSystem {
     targets.forEach((target) => {
       const physical_damage = Math.max(
         0,
-        unit.current.attack.physical - target.current.defense.physical,
+        unit.current.attack_physical - target.current.defense_physical,
       ) // 计算伤害
       const magical_damage = Math.max(
         0,
-        unit.current.attack.magical - target.current.defense.magical,
+        unit.current.attack_magical - target.current.defense_magical,
       ) // 计算伤害
       // 计算命中率
       const hit = Math.random() < unit.current.hitRate // 命中
@@ -199,7 +197,7 @@ class BattleSystem {
           damage *= unit.current.critDamage // 计算暴击伤害
         }
         const 无敌 = target.buffs.find((a) => a.name == '无敌')
-        if (无敌 === undefined) target.current.health.current -= damage // 扣除目标生命值
+        if (无敌 === undefined) target.current.health_current -= damage // 扣除目标生命值
         combatMgr.AddLog(
           '攻击成功，造成伤害:',
           damage,
@@ -215,8 +213,8 @@ class BattleSystem {
         combatMgr.AddLog('攻击未命中')
       }
       // 计算目标死亡
-      if (target.current.health.current <= 0) {
-        target.current.health.current = 0 // 设置目标生命值为0
+      if (target.current.health_current <= 0) {
+        target.current.health_current = 0 // 设置目标生命值为0
         combatMgr.AddLog('目标死亡', target.metadata.name) // 添加日志
         // 执行死亡逻辑
         this.executeDeath(target)
@@ -287,8 +285,8 @@ class AdventureCombat {
       const enemyName = enemyData[Math.floor(Math.random() * enemyData.length)] // 随机选择敌人
       const enemy = EnemyList[enemyName] // 获取敌人数据
       const enemyAttributes: BattleAttributes = {
-        original: JSON.parse(JSON.stringify(enemy.attributes)),
-        current: reactive<CombatAttributes>(JSON.parse(JSON.stringify(enemy.attributes))),
+        original: { ...enemy.attributes },
+        current: reactive<CombatAttributes>({ ...enemy.attributes }),
         buffs: reactive<Buff[]>([]), // 增益效果
         drops: this.currentMap?.drops || [], // 掉落物品
         dropProbs: this.currentMap?.dropProbs || [], // 掉落概率
@@ -315,7 +313,7 @@ class AdventureCombat {
     // 设置友方列表
     const player: BattleAttributes = {
       original: playerData,
-      current: reactive<CombatAttributes>(JSON.parse(JSON.stringify(playerData))),
+      current: reactive<CombatAttributes>({ ...playerData }),
       buffs: reactive<Buff[]>([]), // 增益效果
       drops: [], // 玩家没有掉落物品
       dropProbs: [],
@@ -437,24 +435,16 @@ export const useUserStore = defineStore('user', {
       unusedPoints: 5, // 剩余点数
     }),
     combat: reactive<CombatAttributes>({
-      health: {
-        max: 100,
-        current: 100,
-        regenPerSec: 0.01,
-      },
-      mp: {
-        max: 100,
-        current: 100,
-        regenPerSec: 0.01,
-      },
-      attack: {
-        physical: 10,
-        magical: 10,
-      },
-      defense: {
-        physical: 10,
-        magical: 10,
-      },
+      health_max: 100,
+      health_current: 100,
+      health_regenPerSec: 0.01,
+      mp_max: 100,
+      mp_current: 100,
+      mp_regenPerSec: 0.01,
+      attack_physical: 10,
+      attack_magical: 10,
+      defense_physical: 10,
+      defense_magical: 10,
       speed: 1,
       hitRate: 0.95, // 命中率
       dodgeRate: 0.05, // 闪避率
@@ -541,13 +531,13 @@ export const useUserStore = defineStore('user', {
     },
     CanLevelUp(): { can: boolean; reason?: string } {
       if (this.realmStatus.minorRealm === 0 && this.qiSystem.currentQi === 0) {
-        return { can: false, reason: "需要学习《基础吐纳术》并开始修行" };
+        return { can: false, reason: '需要学习《基础吐纳术》并开始修行' }
       }
       const hasEnoughQi = this.qiSystem.currentQi >= this.realmStatus.requiredQi
       let can = hasEnoughQi
       let reason = ''
 
-      const requirement = LevelUpRequirements[this.realmStatus.majorRealm-1]
+      const requirement = LevelUpRequirements[this.realmStatus.majorRealm - 1]
 
       if (this.realmStatus.minorRealm === 9) {
         if (requirement && !requirement.check(this)) {
@@ -569,21 +559,21 @@ export const useUserStore = defineStore('user', {
         this.realmStatus.minorRealm = 0 // 增加小境界
         this.realmStatus.breakthroughAttempts = 0 // 重置突破失败次数
         this.element.unusedPoints += 5 // 增加剩余点数
-        this.combat.health.max += 100 // 增加最大生命值
-        this.combat.mp.max += 100 // 增加最大蓝量
-        this.combat.health.current = this.combat.health.max // 重置当前生命值
-        this.combat.mp.current = this.combat.mp.max // 重置当前蓝量
+        this.combat.health_max += 100 // 增加最大生命值
+        this.combat.mp_max += 100 // 增加最大蓝量
+        this.combat.health_current = this.combat.health_max // 重置当前生命值
+        this.combat.mp_current = this.combat.mp_max // 重置当前蓝量
       }
       // 增加当前境界小境界
       this.realmStatus.minorRealm++
       this.qiSystem.currentQi -= this.realmStatus.requiredQi // 扣除突破所需灵气
       this.element.unusedPoints += 1 // 增加剩余点数
-      this.combat.health.max += 10 // 增加最大生命值
-      this.combat.mp.max += 10 // 增加最大蓝量
-      this.combat.health.current = this.combat.health.max // 重置当前生命值
-      this.combat.mp.current = this.combat.mp.max // 重置当前蓝量
-      this.combat.attack.physical += 1 // 增加物理攻击
-      this.combat.attack.magical += 1 // 增加魔法攻击
+      this.combat.health_max += 10 // 增加最大生命值
+      this.combat.mp_max += 10 // 增加最大蓝量
+      this.combat.health_current = this.combat.health_max // 重置当前生命值
+      this.combat.mp_current = this.combat.mp_max // 重置当前蓝量
+      this.combat.attack_physical += 1 // 增加物理攻击
+      this.combat.attack_magical += 1 // 增加魔法攻击
       // 如果小境界大于9，则增加大境界并重置小境界
       if (this.realmStatus.minorRealm > 9) {
         let r = this.calcBreakthroughResult()
@@ -592,14 +582,14 @@ export const useUserStore = defineStore('user', {
           this.realmStatus.minorRealm = 1 // 重置小境界
           this.realmStatus.breakthroughAttempts = 0 // 重置突破失败次数
           this.element.unusedPoints += 5 // 增加剩余点数
-          this.combat.health.max += 90 // 增加最大生命值
-          this.combat.mp.max += 90 // 增加最大蓝量
-          this.combat.health.current = this.combat.health.max // 重置当前生命值
-          this.combat.mp.current = this.combat.mp.max // 重置当前蓝量
-          this.combat.attack.physical += 9 // 增加物理攻击
-          this.combat.attack.magical += 9 // 增加魔法攻击
-          this.combat.defense.physical += 3 // 增加物理防御
-          this.combat.defense.magical += 3 // 增加魔法防御
+          this.combat.health_max += 90 // 增加最大生命值
+          this.combat.mp_max += 90 // 增加最大蓝量
+          this.combat.health_current = this.combat.health_max // 重置当前生命值
+          this.combat.mp_current = this.combat.mp_max // 重置当前蓝量
+          this.combat.attack_physical += 9 // 增加物理攻击
+          this.combat.attack_magical += 9 // 增加魔法攻击
+          this.combat.defense_physical += 3 // 增加物理防御
+          this.combat.defense_magical += 3 // 增加魔法防御
           //todo，随机获得先天体质
           const c = this.GetRandomConstitution()
           console.log('获得体质：', c)
@@ -629,24 +619,24 @@ export const useUserStore = defineStore('user', {
       }
       switch (key) {
         case 'metalPoints':
-          this.combat.attack.physical += 1 // 增加物理攻击
+          this.combat.attack_physical += 1 // 增加物理攻击
           break
         case 'firePoints':
-          this.combat.attack.magical += 1 // 增加魔法攻击
+          this.combat.attack_magical += 1 // 增加魔法攻击
           this.combat.critDamage += 0.01 //增加爆伤
           break
         case 'waterPoints':
-          this.combat.health.regenPerSec += 0.01 // 增加生命回复
+          this.combat.health_regenPerSec += 0.01 // 增加生命回复
           {
             let ac = this.constitutions.find((a) => a.name == '先天道体')
-            if (ac !== undefined) this.combat.health.regenPerSec += 0.005 * ac.level
+            if (ac !== undefined) this.combat.health_regenPerSec += 0.005 * ac.level
           }
           break
         case 'woodPoints':
-          this.combat.defense.magical += 1 // 增加魔法防御
+          this.combat.defense_magical += 1 // 增加魔法防御
           break
         case 'earthPoints':
-          this.combat.defense.physical += 1 // 增加物理防御
+          this.combat.defense_physical += 1 // 增加物理防御
           break
       }
     },
@@ -703,11 +693,11 @@ export const useUserStore = defineStore('user', {
       this.element.unusedPoints = Math.round(
         Math.sqrt(
           this.element.metalPoints +
-          this.element.firePoints +
-          this.element.woodPoints +
-          this.element.waterPoints +
-          this.element.earthPoints +
-          this.element.unusedPoints,
+            this.element.firePoints +
+            this.element.woodPoints +
+            this.element.waterPoints +
+            this.element.earthPoints +
+            this.element.unusedPoints,
         ),
       ) // 增加剩余点数
       this.element.metalPoints = 0
@@ -730,16 +720,16 @@ export const useUserStore = defineStore('user', {
       this.resources.midHerbs = 0 //中级草药，灵气池、宗门任务 存储量为仓库等级*100
       this.resources.maxHerbs = 0 //高级草药，炼丹 存储量为仓库等级*10
       // 战斗属性重置
-      this.combat.health.max = 100
-      this.combat.health.current = 100
-      this.combat.health.regenPerSec = 0.01
-      this.combat.mp.max = 100
-      this.combat.mp.current = 100
-      this.combat.mp.regenPerSec = 0.01
-      this.combat.attack.physical = 10
-      this.combat.attack.magical = 10
-      this.combat.defense.physical = 10
-      this.combat.defense.magical = 10
+      this.combat.health_max = 100
+      this.combat.health_current = 100
+      this.combat.health_regenPerSec = 0.01
+      this.combat.mp_max = 100
+      this.combat.mp_current = 100
+      this.combat.mp_regenPerSec = 0.01
+      this.combat.attack_physical = 10
+      this.combat.attack_magical = 10
+      this.combat.defense_physical = 10
+      this.combat.defense_magical = 10
       this.combat.speed = 1
       this.combat.hitRate = 0.95 // 命中率
       this.combat.dodgeRate = 0.05 // 闪避率
@@ -751,13 +741,11 @@ export const useUserStore = defineStore('user', {
 
       this.actionStateMap = {} // 清空正在处理的技能
       this.tickProgressMap = {} // 每个 action 的进度
-      this.currentActionCategory = '', // 当前激活的 action（手动用）
-
-        this.timer = 0 // 定时器
+      ;(this.currentActionCategory = ''), // 当前激活的 action（手动用）
+        (this.timer = 0) // 定时器
       this.updateInterval = 500
       this.clearedMaps = [] // 通关的地图记录
       this.currentBattleMap = '' // 当前战斗地图
-
 
       this.passiveSkills = {} // 清空被动技能
 
@@ -765,7 +753,7 @@ export const useUserStore = defineStore('user', {
       const bag = useBagStore()
       bag.clearBag() // 清空背包
 
-      this.$reset(); // Pinia 自带的重置方法，用于重置所有状态
+      this.$reset() // Pinia 自带的重置方法，用于重置所有状态
       // 刷新页面
       window.location.reload()
     },
@@ -788,30 +776,25 @@ export const useUserStore = defineStore('user', {
       // 境界高于练气期才有被动恢复灵气
       if (this.realmStatus.majorRealm > 1) {
         this.qiSystem.currentQi +=
-          coef *
-          this.qiSystem.autoGainPerSec *
-          this.qiSystem.concentrationFactor *
-          seconds
+          coef * this.qiSystem.autoGainPerSec * this.qiSystem.concentrationFactor * seconds
       }
 
       // 战斗中不进行行动
       if (combatMgr.currentMap) return
 
       // 战斗外五倍回血回蓝
-      this.combat.health.current += (this.combat.health.regenPerSec * seconds) * 5
-      this.combat.health.current = Math.min(this.combat.health.current, this.combat.health.max)
-      this.combat.mp.current += (this.combat.mp.regenPerSec * seconds) * 5
-      this.combat.mp.current = Math.min(this.combat.mp.current, this.combat.mp.max)
+      this.combat.health_current += this.combat.health_regenPerSec * seconds * 5
+      this.combat.health_current = Math.min(this.combat.health_current, this.combat.health_max)
+      this.combat.mp_current += this.combat.mp_regenPerSec * seconds * 5
+      this.combat.mp_current = Math.min(this.combat.mp_current, this.combat.mp_max)
 
+      if (!this.currentActionCategory) return
 
+      const currentAction = this.actionStateMap[this.currentActionCategory] ?? null
+      if (!currentAction) return
 
-      if (!this.currentActionCategory) return;
-
-      const currentAction = this.actionStateMap[this.currentActionCategory] ?? null;
-      if (!currentAction) return;
-
-      const currentSubAction = currentAction.currentSubAction;
-      if (!currentSubAction) return;
+      const currentSubAction = currentAction.currentSubAction
+      if (!currentSubAction) return
 
       // === 1. 自动行为处理 ===
       if (currentAction.autoUnlocked) {
@@ -830,11 +813,9 @@ export const useUserStore = defineStore('user', {
           // 重置进度条
           this.tickProgressMap[this.currentActionCategory] = 0
 
-          logDisplay('执行了一次' + this.currentActionCategory + '行动');
+          logDisplay('执行了一次' + this.currentActionCategory + '行动')
         }
       }
-
-
 
       this.qiSystem.lastUpdateTime += this.updateInterval
     },
@@ -850,7 +831,6 @@ export const useUserStore = defineStore('user', {
       this.stopBattle()
     },
 
-
     updateActions() {
       for (const [key, action] of Object.entries(ActionsMap)) {
         // 判断主行动是否解锁
@@ -859,20 +839,14 @@ export const useUserStore = defineStore('user', {
 
         // 判断是否解锁自动功能
         const autoUnlocked =
-          typeof action.autoUnlock === 'function'
-            ? action.autoUnlock(this)
-            : !!action.autoUnlock
+          typeof action.autoUnlock === 'function' ? action.autoUnlock(this) : !!action.autoUnlock
 
         // 筛选出已解锁的子行动（保留顺序）
-        const unlockedSubActions = action.actions.filter(
-          (sub) => !sub.unlock || sub.unlock(this)
-        )
+        const unlockedSubActions = action.actions.filter((sub) => !sub.unlock || sub.unlock(this))
 
         // 选出数组中最靠后的一个子行动（优先度最高）
         const currentSubAction =
-          unlockedSubActions.length > 0
-            ? unlockedSubActions[unlockedSubActions.length - 1]
-            : null
+          unlockedSubActions.length > 0 ? unlockedSubActions[unlockedSubActions.length - 1] : null
 
         // 写入新状态
         this.actionStateMap[key] = {
@@ -888,27 +862,32 @@ export const useUserStore = defineStore('user', {
     },
 
     handleAction() {
-      const categoryKey = this.currentActionCategory;
-      if (!categoryKey) return;
+      const categoryKey = this.currentActionCategory
+      if (!categoryKey) return
 
-      const currentAction = this.actionStateMap[this.currentActionCategory] ?? null;
-      if (!currentAction) return;
+      const currentAction = this.actionStateMap[this.currentActionCategory] ?? null
+      if (!currentAction) return
 
-      const currentSubAction = currentAction.currentSubAction;
-      if (!currentSubAction) return;
+      const currentSubAction = currentAction.currentSubAction
+      if (!currentSubAction) return
 
       // 初始化进度（若未定义则设为 0）
-      this.tickProgressMap[categoryKey] ??= 0;
+      this.tickProgressMap[categoryKey] ??= 0
+
+      if (currentSubAction.disable && currentSubAction.disable(this)) {
+        logDisplay('当前行动条件不满足，被暂停')
+        return
+      }
 
       // 增加进度
-      this.tickProgressMap[categoryKey]++;
+      this.tickProgressMap[categoryKey]++
 
-      const requiredProgress = currentAction.progress ?? 10;
+      const requiredProgress = currentAction.progress ?? 10
       if (this.tickProgressMap[categoryKey] >= requiredProgress) {
-        currentSubAction.cost?.(this);
-        currentSubAction.effect?.(this);
-        this.tickProgressMap[categoryKey] = 0;
-        logDisplay('执行了一次' + this.currentActionCategory + '行动');
+        currentSubAction.cost?.(this)
+        currentSubAction.effect?.(this)
+        this.tickProgressMap[categoryKey] = 0
+        logDisplay('执行了一次' + this.currentActionCategory + '行动')
       }
     },
 
@@ -918,8 +897,6 @@ export const useUserStore = defineStore('user', {
         this.tickProgressMap[actionKey] = 0
       }
     },
-
-
 
     hasPassiveSkills(name: string, level?: number): boolean {
       if (name === '') return false
@@ -954,8 +931,8 @@ export const useUserStore = defineStore('user', {
 })
 
 function logDisplay(message: string) {
-  const logStore = useLogStore();
-  logStore.addLog(message);
+  const logStore = useLogStore()
+  logStore.addLog(message)
 }
 
 export type UserStoreType = ReturnType<typeof useUserStore>

@@ -4,7 +4,7 @@ export type { Action, SubAction, ActionState }
 interface Action {
   name: string // 主行动名称，例如 打坐、采矿、跑腿
   description: string // 主行动描述，用于展示在卡片或菜单上
-  progress:number // 进度条有多长
+  progress: number // 进度条有多长
   unlock?: (user: UserStoreType) => boolean // 该主行动是否已解锁（可选）
   autoUnlock?: boolean | ((user: UserStoreType) => boolean) // 自动功能是否解锁（布尔值或函数）（可选）
   duration?: number // 主行动需要的时间（可选）
@@ -18,13 +18,12 @@ interface SubAction {
   effect?: (user: UserStoreType) => void // 子行动完成后产生的效果（可选）
   unlock?: (user: UserStoreType) => boolean // 子行动是否解锁（用于根据角色状态控制解锁逻辑）（可选）
   disable?: (user: UserStoreType) => boolean // 子行动是否临时禁用（例如资源不足、冷却中等）（可选）
-  autoEffect?: (user: UserStoreType) => void  // 子行动自动执行的效果
+  autoEffect?: (user: UserStoreType) => void // 子行动自动执行的效果
 }
-
 
 interface ActionState {
   key: string // 对应主行动的键（例如 "修行"、"碎石" 等），用于在 actionStateMap 中识别
-  description:string //描述
+  description: string //描述
   unlocked: boolean // 是否已解锁该主行动（满足 unlock 条件）
   autoUnlocked: boolean // 是否已解锁自动功能（满足 autoUnlock 条件）
   currentSubAction: SubAction | null // 当前选中的子行动（如果有）
@@ -45,15 +44,15 @@ export const ActionsMap: Record<string, Action> = {
         description: '只要996，月入三十万不是梦,每次随机收获10~20块',
         unlock: (user) => true,
         cost: (user) => {
-          user.combat.health.current -= 1
+          user.combat.health_current -= 1
         },
         effect: (user) => {
           user.resources.money += Math.floor(Math.random() * 10 + 10)
         },
-        disable: (user) => user.combat.health.current <= 1,
+        disable: (user) => user.combat.health_current <= 1,
         autoEffect: (user) => {
           user.resources.money += Math.floor(Math.random() * 10 + 10)
-        }
+        },
       },
     ],
   },
@@ -74,7 +73,7 @@ export const ActionsMap: Record<string, Action> = {
         },
         autoEffect: (user) => {
           user.qiSystem.currentQi += 10
-        }
+        },
       },
       {
         name: '外院打坐',
@@ -85,7 +84,7 @@ export const ActionsMap: Record<string, Action> = {
         },
         autoEffect: (user) => {
           user.qiSystem.currentQi += 25
-        }
+        },
       },
       {
         name: '内院打坐',
@@ -96,7 +95,7 @@ export const ActionsMap: Record<string, Action> = {
         },
         autoEffect: (user) => {
           user.qiSystem.currentQi += 50
-        }
+        },
       },
     ],
   },
@@ -120,7 +119,7 @@ export const ActionsMap: Record<string, Action> = {
         },
         autoEffect: (user) => {
           user.resources.magicStoneLow += 1
-        }
+        },
       },
     ],
   },
@@ -137,7 +136,7 @@ export const ActionsMap: Record<string, Action> = {
         description: '啥草药都往里怼啊！每次赚2块，10%获得下品灵石；消耗5点生命',
         unlock: (user) => true,
         cost: (user) => {
-          user.combat.health.current -= 5
+          user.combat.health_current -= 5
         },
         effect: (user) => {
           user.resources.money += 2
@@ -145,13 +144,13 @@ export const ActionsMap: Record<string, Action> = {
             user.resources.magicStoneLow += 1
           }
         },
-        disable: (user) => user.combat.health.current <= 5,
+        disable: (user) => user.combat.health_current <= 5,
         autoEffect: (user) => {
           user.resources.money += 2
           if (Math.random() < 0.1) {
             user.resources.magicStoneLow += 1
           }
-        }
+        },
       },
     ],
   },
@@ -168,7 +167,7 @@ export const ActionsMap: Record<string, Action> = {
         description: '锄禾日当午,汗滴禾下土！每次收获2块，10%获得下品灵石；消耗5点生命',
         unlock: (user) => true,
         cost: (user) => {
-          user.combat.health.current -= 5
+          user.combat.health_current -= 5
         },
         effect: (user) => {
           user.resources.money += 2
@@ -176,16 +175,16 @@ export const ActionsMap: Record<string, Action> = {
             user.resources.magicStoneLow += 1
           }
         },
-        disable: (user) => user.combat.health.current <= 5,
+        disable: (user) => user.combat.health_current <= 5,
         autoEffect: (user) => {
           user.resources.money += 2
           if (Math.random() < 0.1) {
             user.resources.magicStoneLow += 1
           }
-        }
+        },
       },
     ],
   },
 }
 
-export default ActionsMap;
+export default ActionsMap

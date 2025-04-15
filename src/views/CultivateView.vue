@@ -42,24 +42,24 @@
       <div class="combat-attributes">
         <h3>战斗属性</h3>
         <p>
-          生命：{{ Math.round(player.combat.health.current) }} /
-          {{ Math.round(player.combat.health.max) }}（{{
-            Math.round(player.combat.health.regenPerSec * 1000) / 1000
+          生命：{{ Math.round(player.combat.health_current) }} /
+          {{ Math.round(player.combat.health_max) }}（{{
+            Math.round(player.combat.health_regenPerSec * 1000) / 1000
           }}/s）
         </p>
         <p>
-          灵力：{{ Math.round(player.combat.mp.current) }} /
-          {{ Math.round(player.combat.mp.max) }}（{{
-            Math.round(player.combat.mp.regenPerSec * 1000) / 1000
+          灵力：{{ Math.round(player.combat.mp_current) }} /
+          {{ Math.round(player.combat.mp_max) }}（{{
+            Math.round(player.combat.mp_regenPerSec * 1000) / 1000
           }}/s）
         </p>
         <p>
-          攻击力（物理/魔法）：{{ Math.round(player.combat.attack.physical) }} /
-          {{ Math.round(player.combat.attack.magical) }}
+          攻击力（物理/魔法）：{{ Math.round(player.combat.attack_physical) }} /
+          {{ Math.round(player.combat.attack_magical) }}
         </p>
         <p>
-          防御力（物理/魔法）：{{ Math.round(player.combat.defense.physical) }} /
-          {{ Math.round(player.combat.defense.magical) }}
+          防御力（物理/魔法）：{{ Math.round(player.combat.defense_physical) }} /
+          {{ Math.round(player.combat.defense_magical) }}
         </p>
         <p>速度：{{ Math.round(player.combat.speed * 100) / 100 }}</p>
         <p>暴击率：{{ Math.round(player.combat.critRate * 1000) / 10 }}%</p>
@@ -82,6 +82,20 @@
         </span>
       </div>
     </div>
+    <!-- 显示被动技能 -->
+    <div class="passive-skills-panel">
+      <h3>被动技能</h3>
+      <div class="passive-skills-list">
+        <span
+          v-for="(skill, index) in player.passiveSkills"
+          :key="index"
+          class="passive-skill-item"
+          :title="ps[skill.name].description"
+        >
+          {{ skill.name }}: Lv{{ skill.level }}
+        </span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -89,11 +103,13 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useUserStore } from '../stores/user' // 假设使用Pinia状态管理
 import type { Constitution, ConstitutionData } from '@/modules/Constitution'
-import constitutionLists from '@/modules/Constitution'
+import constitutionLists, { passiveSpells } from '@/modules/Constitution'
 import { ElButton } from 'element-plus'
 
 // 境界状态
 const player = useUserStore()
+
+const ps = passiveSpells
 
 // 计算属性[2,5](@ref)
 const breakthroughInfo = computed(() => player.CanLevelUp())
@@ -214,5 +230,37 @@ const constitutionHint = (v: ConstitutionData) => {
   background-color: #f5f5f5;
   font-size: 14px;
   color: #333;
+}
+
+.passive-skills-panel {
+  margin-top: 2rem;
+  padding: 1rem;
+  border: 1px dashed #616161;
+}
+
+.passive-skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.passive-skill-item {
+  display: inline-block;
+  white-space: nowrap;
+  padding: 8px 12px;
+  border: 1px solid #7cb342;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition:
+    background-color 0.3s,
+    color 0.3s;
+}
+
+.passive-skill-item:hover {
+  background-color: #7cb342;
+  color: #fff;
 }
 </style>

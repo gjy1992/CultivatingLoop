@@ -35,8 +35,8 @@ const constitutionLists: { [key: string]: Constitution } = {
     canLevelUp: true,
     maxlevel: 9,
     apply: (user, currentLevel) => {
-      user.combat.health.regenPerSec /= 2 + currentLevel - 1
-      user.combat.health.regenPerSec *= 2 + currentLevel
+      user.combat.health_regenPerSec /= 2 + currentLevel - 1
+      user.combat.health_regenPerSec *= 2 + currentLevel
     },
   },
 
@@ -121,7 +121,7 @@ const passiveSpells: { [key: string]: Constitution } = {
     effect: () => '可以筑基了',
     unlock: (user: UserStoreType) => false,
     apply: (user, currentLevel) => {
-      user.combat.health.max += 100
+      user.combat.health_max += 100
     },
   },
 }

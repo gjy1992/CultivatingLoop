@@ -1,27 +1,15 @@
 // 核心战斗属性
 interface CombatAttributes {
-  health: {
-    // 生命系统
-    max: number // 100+土灵根×2% + 装备加成
-    current: number // 当前生命值
-    regenPerSec: number // 0.01+木灵根×0.5%
-  }
-  mp: {
-    // 魔法系统
-    max: number // 100+水灵根×2% + 装备加成
-    current: number // 当前魔法值
-    regenPerSec: number // 0.01+火灵根×0.5%
-  }
-  attack: {
-    // 攻击系统
-    physical: number // 10+金灵根×1% + 装备
-    magical: number // 10+火灵根×1.2%
-  }
-  defense: {
-    // 防御系统
-    physical: number // 10+土灵根×1%
-    magical: number // 10+水灵根×0.8%
-  }
+  health_max: number // 100+土灵根×2% + 装备加成
+  health_current: number // 当前生命值
+  health_regenPerSec: number // 0.01+木灵根×0.5%
+  mp_max: number // 100+水灵根×2% + 装备加成
+  mp_current: number // 当前魔法值
+  mp_regenPerSec: number // 0.01+火灵根×0.5%
+  attack_physical: number // 10+金灵根×1% + 装备
+  attack_magical: number // 10+火灵根×1.2%
+  defense_physical: number // 10+土灵根×1%
+  defense_magical: number // 10+水灵根×0.8%
   speed: number // 10+木灵根×0.5% + 装备修正
   hitRate: number // 基础100% + 装备修正
   dodgeRate: number // 身法×0.3% + 装备修正
@@ -65,7 +53,9 @@ const BuffList: { [key: string]: Buff } = {
     duration: 60,
     priority: 2,
     effectFunc(attributes: CombatAttributes) {
-      attributes.health.current = Math.round(attributes.health.current - attributes.health.max * 0.01 * this.level);
+      attributes.health_current = Math.round(
+        attributes.health_current - attributes.health_max * 0.01 * this.level,
+      )
     },
   },
 }

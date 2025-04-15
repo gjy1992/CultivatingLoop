@@ -9,13 +9,13 @@
             ><strong>{{ ally.metadata.name }}</strong></span
           >
           <span v-else>{{ ally.metadata.name }}</span> - HP:
-          {{ Math.round(ally.current.health.current) }} / MP:
-          {{ Math.round(ally.current.mp.current) }}
+          {{ Math.round(ally.current.health_current) }} / MP:
+          {{ Math.round(ally.current.mp_current) }}
           <div class="hp-bar">
             <div
               class="hp-bar-fill"
               :style="{
-                width: (ally.current.health.current / ally.current.health.max) * 100 + '%',
+                width: (ally.current.health_current / ally.current.health_max) * 100 + '%',
               }"
             ></div>
           </div>
@@ -45,12 +45,12 @@
         <h4>第{{ combatMgr.currentLevel }} / {{ mapData.levelNum }}关</h4>
         <div v-for="(enemy, index) in battleSystem.enemies" :key="index">
           {{ enemy.metadata.name }} - LV: {{ enemy.metadata.strength }} - HP:
-          {{ Math.round(enemy.current.health.current) }}
+          {{ Math.round(enemy.current.health_current) }}
           <div class="hp-bar">
             <div
               class="hp-bar-fill"
               :style="{
-                width: (enemy.current.health.current / enemy.current.health.max) * 100 + '%',
+                width: (enemy.current.health_current / enemy.current.health_max) * 100 + '%',
               }"
             ></div>
           </div>

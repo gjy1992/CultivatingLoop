@@ -37,8 +37,8 @@ export const ItemDB: Record<string, BaseItem> = {
     desc: '恢复100气血',
     stackable: true,
     effect: (user) => {
-      user.combat.health.current += 100
-      user.combat.health.current = Math.min(user.combat.health.current, user.combat.health.max)
+      user.combat.health_current += 100
+      user.combat.health_current = Math.min(user.combat.health_current, user.combat.health_max)
     },
     value: 30,
     currencyType: 'money',
@@ -68,7 +68,7 @@ export const ItemDB: Record<string, BaseItem> = {
     desc: '一把普通的铁剑',
     stackable: false,
     stats: (attr) => {
-      attr.attack.physical += 2
+      attr.attack_physical += 2
     },
     value: 50,
     currencyType: 'money',
