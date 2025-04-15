@@ -563,6 +563,7 @@ export const useUserStore = defineStore('user', {
         this.combat.mp_max += 100 // 增加最大蓝量
         this.combat.health_current = this.combat.health_max // 重置当前生命值
         this.combat.mp_current = this.combat.mp_max // 重置当前蓝量
+        return
       }
       // 增加当前境界小境界
       this.realmStatus.minorRealm++
