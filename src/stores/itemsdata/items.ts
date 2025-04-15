@@ -84,7 +84,7 @@ export const ItemDB: Record<string, BaseItem> = {
     type: ItemType.SKILL,
     useImmediately: true,
     icon: '📘',
-    desc: '学完之后可以打坐吸收天地灵气',
+    desc: '可以打坐吸收天地灵气',
     stackable: false,
     value: 100,
     currencyType: 'money',

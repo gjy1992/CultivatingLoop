@@ -1,266 +1,424 @@
-<!-- src/views/CultivateView.vue -->
 <template>
-  <div class="cultivate-container">
-    <!-- 修炼界面 -->
-    <div class="cultivate-panel">
-      <!-- 境界状态 -->
-      <div class="realm-status">
-        <h2>当前境界：{{ player.majorRealmsName() }} {{ player.minorRealmsName() }}</h2>
-      </div>
+  <div class="cultivate-view">
+    <el-row :gutter="20">
+      <!-- 左侧主内容 -->
+      <el-col :span="16">
+        <!-- 境界状态 -->
+        <el-card class="panel">
+          <div class="person_panel">
+            <div class="left-info">
+              <p>道号：{{ player.name }}</p>
+              <p>宗门：无门无派</p>
+              <p>职位：小虾米</p>
+              <p>声望：默默无闻</p>
+            </div>
 
-      <!-- 灵气操作 -->
-      <div class="spirit-control">
-        <p>灵气浓度：{{ Math.round(player.qiSystem.concentrationFactor * 100) }}%</p>
-        <p>当前灵气：{{ Math.round(player.qiSystem.currentQi) }}</p>
-        <p>突破需要：{{ player.realmStatus.requiredQi }}</p>
-        <el-button
-          @click="player.LevelUp()"
-          :disabled="!breakthroughInfo.can"
-          class="breakthrough-btn"
-          :style="{ color: player.CanLevelUp().can ? '#ffd700' : '#ffffff' }"
-        >
-          {{ breakthroughInfo.reason ? breakthroughInfo.reason : '突破' }}
-        </el-button>
-      </div>
+            <div class="right-cultivation">
+              <h2>当前境界：{{ player.majorRealmsName() }} {{ player.minorRealmsName() }}</h2>
+              <p>灵气浓度：{{ Math.round(player.qiSystem.concentrationFactor * 100) }}%</p>
+              <p>当前灵气：{{ Math.round(player.qiSystem.currentQi) }}</p>
+              <p>突破需要：{{ player.realmStatus.requiredQi }}</p>
 
-      <!-- 五行灵根显示 -->
-      <div class="elements-panel">
-        <div v-for="(val, key) in player.element" :key="key" class="element-item" :class="key">
-          {{ elementNames[key] }}：{{ val }}
-          <!-- 分配按钮 -->
-          <button
-            @click="player.DistributePoints(key)"
-            v-if="player.element.unusedPoints > 0 && key != 'unusedPoints'"
-          >
-            分配
-          </button>
+              <el-button
+                type="primary"
+                size="large"
+                :disabled="!player.CanLevelUp().can"
+                @click="player.LevelUp()"
+                :style="{ color: player.CanLevelUp().can ? '#ffd700' : '#ffffff' }"
+              >
+                {{ player.CanLevelUp().reason || '突破' }}
+              </el-button>
+            </div>
+          </div>
+        </el-card>
+
+        <!-- 五行雷达图 -->
+        <el-card class="panel radar-panel">
+          <div class="radar-container">
+            <div ref="chartRef" style="width: 100%; height: 400px"></div>
+            <div class="element-buttons">
+              <p>剩余点数：{{ player.element.unusedPoints }}</p>
+              <el-button type="success" @click="addElementPoint('metal')">金 +1</el-button>
+              <el-button type="success" @click="addElementPoint('wood')">木 +1</el-button>
+              <el-button type="success" @click="addElementPoint('water')">水 +1</el-button>
+              <el-button type="success" @click="addElementPoint('fire')">火 +1</el-button>
+              <el-button type="success" @click="addElementPoint('earth')">土 +1</el-button>
+            </div>
+          </div>
+          <div class="element-description">
+            <p>金：影响防御力</p>
+            <p>木：影响生命恢复</p>
+            <p>水：影响灵气恢复</p>
+            <p>火：提升攻击力</p>
+            <p>土：增加灵根潜力</p>
+          </div>
+        </el-card>
+      </el-col>
+
+      <!-- 右侧状态区 -->
+      <el-col :span="8">
+        <div class="left-panel-container">
+          <!-- 体质 -->
+          <el-card class="panel constitution-panel">
+            <h3>战斗属性</h3>
+            <p>
+              生命：{{ Math.round(player.combat.health_current) }} /
+              {{ Math.round(player.combat.health_max) }}（{{
+                Math.round(player.combat.health_regenPerSec * 1000) / 1000
+              }}/s）
+            </p>
+            <p>
+              灵力：{{ Math.round(player.combat.mp_current) }} /
+              {{ Math.round(player.combat.mp_max) }}（{{
+                Math.round(player.combat.mp_regenPerSec * 1000) / 1000
+              }}/s）
+            </p>
+            <p>
+              攻击力（物理/魔法）：{{ Math.round(player.combat.attack_physical) }} /
+              {{ Math.round(player.combat.attack_magical) }}
+            </p>
+            <p>
+              防御力（物理/魔法）：{{ Math.round(player.combat.defense_physical) }} /
+              {{ Math.round(player.combat.defense_magical) }}
+            </p>
+            <p>速度：{{ Math.round(player.combat.speed * 100) / 100 }}</p>
+            <p>暴击率：{{ Math.round(player.combat.critRate * 1000) / 10 }}%</p>
+            <p>暴击伤害：{{ Math.round(player.combat.critDamage * 1000) / 10 }}%</p>
+            <p>命中率：{{ Math.round(player.combat.hitRate * 1000) / 10 }}%</p>
+            <p>闪避率：{{ Math.round(player.combat.dodgeRate * 1000) / 10 }}%</p>
+          </el-card>
+
+          <!-- 技能 -->
+          <el-card class="panel skill-panel scrollable-panel">
+            <h3>技能</h3>
+            <el-tabs v-model="activeTab">
+              <el-tab-pane label="主动技能" name="active">
+                <div class="constitution-container">
+                  <div
+                    class="constitution-item"
+                    v-for="(skill, index) in player.actionSkills"
+                    :key="index"
+                  >
+                    <el-card class="constitution-card">
+                      <p>{{ skill.name }}+{{skill.level}}+{{skill.description}}</p>
+                    </el-card>
+                  </div>
+                </div>
+              </el-tab-pane>
+
+              <el-tab-pane label="被动技能" name="passive">
+                <div class="constitution-container">
+                  <div
+                    class="constitution-item"
+                    v-for="(skill, index) in player.passiveSkills"
+                    :key="index"
+                  >
+                  <p>{{ skill.name }} Lv.{{skill.level}}:{{skill.description}}</p>
+                  </div>
+                </div>
+              </el-tab-pane>
+
+              <SkillList :skills="player.constitutions" type="passive" />
+              <el-tab-pane label="先天体质" name="constitution">
+                <div class="constitution-container">
+                  <div
+                    class="constitution-item"
+                    v-for="(constitution, index) in player.constitutions"
+                    :key="index"
+                  >
+                  <p>{{ constitution.name }} Lv.{{constitution.level}}</p>
+                  </div>
+                </div>
+              </el-tab-pane>
+            </el-tabs>
+          </el-card>
+
+          <!-- 装备显示 -->
+          <el-card class="panel equipment-panel">
+            <h3>当前装备</h3>
+            <div class="equipment-container">
+              <!-- 左边：武器+衣服+鞋子 -->
+              <div class="equip-left">
+                <div>
+                  武器:{{ player.equipments.weapon != '' ? player.equipments.weapon : '手无寸铁' }}
+                </div>
+                <div>
+                  衣服:{{ player.equipments.armor != '' ? player.equipments.armor : '猎户装' }}
+                </div>
+                <div>
+                  鞋子:{{ player.equipments.boots != '' ? player.equipments.boots : '赤脚' }}
+                </div>
+              </div>
+              <!-- 右边：三类法宝 -->
+              <div class="equip-right">
+                <div>
+                  攻击法宝:{{
+                    player.equipments.artifactAttack != '' ? player.equipments.artifactAttack : '无'
+                  }}
+                </div>
+                <div>
+                  防御法宝:{{
+                    player.equipments.artifactDefense != '' ? player.equipments.artifactDefense : '无'
+                  }}
+                </div>
+                <div>
+                  辅助法宝:{{
+                    player.equipments.artifactSupport != '' ? player.equipments.artifactSupport : '无'
+                  }}
+                </div>
+              </div>
+            </div>
+          </el-card>
         </div>
-      </div>
-    </div>
-    <!-- 战斗属性界面 -->
-    <div class="attr-panel">
-      <div class="combat-attributes">
-        <h3>战斗属性</h3>
-        <p>
-          生命：{{ Math.round(player.combat.health_current) }} /
-          {{ Math.round(player.combat.health_max) }}（{{
-            Math.round(player.combat.health_regenPerSec * 1000) / 1000
-          }}/s）
-        </p>
-        <p>
-          灵力：{{ Math.round(player.combat.mp_current) }} /
-          {{ Math.round(player.combat.mp_max) }}（{{
-            Math.round(player.combat.mp_regenPerSec * 1000) / 1000
-          }}/s）
-        </p>
-        <p>
-          攻击力（物理/魔法）：{{ Math.round(player.combat.attack_physical) }} /
-          {{ Math.round(player.combat.attack_magical) }}
-        </p>
-        <p>
-          防御力（物理/魔法）：{{ Math.round(player.combat.defense_physical) }} /
-          {{ Math.round(player.combat.defense_magical) }}
-        </p>
-        <p>速度：{{ Math.round(player.combat.speed * 100) / 100 }}</p>
-        <p>暴击率：{{ Math.round(player.combat.critRate * 1000) / 10 }}%</p>
-        <p>暴击伤害：{{ Math.round(player.combat.critDamage * 1000) / 10 }}%</p>
-        <p>命中率：{{ Math.round(player.combat.hitRate * 1000) / 10 }}%</p>
-        <p>闪避率：{{ Math.round(player.combat.dodgeRate * 1000) / 10 }}%</p>
-      </div>
-    </div>
-    <!-- 显示体质 -->
-    <div class="constitutions-panel">
-      <h3>体质</h3>
-      <div class="constitutions-list">
-        <span
-          v-for="(value, key) in player.constitutions"
-          :key="key"
-          class="constitution-item"
-          :title="constitutionHint(value)"
-        >
-          {{ value.name }}: Lv{{ value.level }}
-        </span>
-      </div>
-    </div>
-    <!-- 显示被动技能 -->
-    <div class="passive-skills-panel">
-      <h3>被动技能</h3>
-      <div class="passive-skills-list">
-        <span
-          v-for="(skill, index) in player.passiveSkills"
-          :key="index"
-          class="passive-skill-item"
-          :title="ps[skill.name].description"
-        >
-          {{ skill.name }}: Lv{{ skill.level }}
-        </span>
-      </div>
-    </div>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useUserStore } from '../stores/user' // 假设使用Pinia状态管理
-import type { Constitution, ConstitutionData } from '@/modules/Constitution'
-import constitutionLists, { passiveSpells } from '@/modules/Constitution'
-import { ElButton } from 'element-plus'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { useUserStore } from '@/stores/user'
+import * as echarts from 'echarts'
 
-// 境界状态
 const player = useUserStore()
+const activeTab = ref('active')
 
-const ps = passiveSpells
+const chartRef = ref<HTMLElement | null>(null)
+let chartInstance: echarts.ECharts | null = null
 
-// 计算属性[2,5](@ref)
-const breakthroughInfo = computed(() => player.CanLevelUp())
+function renderRadarChart() {
+  if (!chartRef.value) return
 
-// 突破境界方法
-const startBreakThrough = () => {
-  if (player.realmStatus.minorRealm >= 9) {
-    // Logic for breaking through the realm
-    console.log('Breaking through the realm...')
-    player.realmStatus.minorRealm = 0 // Example logic
-    player.realmStatus.majorRealm += 1
+  if (!chartInstance) {
+    chartInstance = echarts.init(chartRef.value)
   }
+
+  const metal = Number(player.element?.metalPoints ?? 0)
+  const wood = Number(player.element?.woodPoints ?? 0)
+  const water = Number(player.element?.waterPoints ?? 0)
+  const fire = Number(player.element?.firePoints ?? 0)
+  const earth = Number(player.element?.earthPoints ?? 0)
+
+  const options = {
+    tooltip: {
+      trigger: 'axis',
+    },
+    radar: {
+      indicator: [
+        { name: '金', max: 100 },
+        { name: '木', max: 100 },
+        { name: '水', max: 100 },
+        { name: '火', max: 100 },
+        { name: '土', max: 100 },
+      ],
+    },
+    series: [
+      {
+        type: 'radar',
+        data: [
+          {
+            value: [metal, wood, water, fire, earth],
+            name: '五行属性',
+          },
+        ],
+      },
+    ],
+  }
+
+  chartInstance.setOption(options)
 }
 
-// 五行显示名称
-const elementNames = {
-  firePoints: '火',
-  waterPoints: '水',
-  woodPoints: '木',
-  metalPoints: '金',
-  earthPoints: '土',
-  unusedPoints: '未使用',
+function addElementPoint(type: 'metal' | 'wood' | 'water' | 'fire' | 'earth') {
+  if (!player.element) return
+  if (player.element.unusedPoints <= 0) return
+  switch (type) {
+    case 'metal':
+      player.element.metalPoints++
+      break
+    case 'wood':
+      player.element.woodPoints++
+      break
+    case 'water':
+      player.element.waterPoints++
+      break
+    case 'fire':
+      player.element.firePoints++
+      break
+    case 'earth':
+      player.element.earthPoints++
+      break
+  }
+  player.element.unusedPoints--
 }
 
-// 手动吸收灵气方法
-const absorbQi = () => {
-  player.qiSystem.currentQi += player.qiSystem.concentrationFactor * 10 // Example logic
-}
+// 首次挂载时延迟初始化（等待 DOM 渲染）
+onMounted(() => {
+  nextTick(() => {
+    renderRadarChart()
+  })
+})
 
-const constitutionHint = (v: ConstitutionData) => {
-  const c = constitutionLists[v.name]
-  return c.description + '\n' + c.effect(v.level)
-}
+// 自动监听五行属性变化，刷新图表
+watch(
+  () => [
+    player.element?.metalPoints,
+    player.element?.woodPoints,
+    player.element?.waterPoints,
+    player.element?.firePoints,
+    player.element?.earthPoints,
+  ],
+  () => {
+    nextTick(() => {
+      renderRadarChart()
+    })
+  },
+  { immediate: true },
+)
+
+// 卸载时销毁图表实例
+onBeforeUnmount(() => {
+  if (chartInstance) {
+    chartInstance.dispose()
+    chartInstance = null
+  }
+})
 </script>
 
 <style scoped>
-.cultivate-container {
+.cultivate-view {
   background-color: #f0f0f0;
-  width: 100%;
-  max-width: 100%;
   border-radius: 15px;
+  height: 100vh;
+}
+
+.person_panel {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.left-info,
+.right-cultivation {
+  display: flex;
+  flex-direction: column;
+  width: 48%;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  padding: 1rem;
+  border: 1px solid #616161;
+  border-radius: 10px;
+}
+
+.panel {
+  margin-bottom: 20px;
+}
+
+.radar-container {
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 20px;
 }
-
-.cultivate-panel {
-  width: auto;
-  margin: 2rem auto;
-  padding: 1rem;
-  border: 1px dashed #616161;
-}
-
-.attr-panel {
-  flex-grow: 1;
-  margin: 2rem auto;
-  padding: 1rem;
-  border: 1px dashed #616161;
-}
-
-.breakthrough-btn {
-  padding: 8px 20px;
-  background: #2c2f3a;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.3s;
-}
-
-.breakthrough-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.realm-status {
-  width: 100%;
-  margin-bottom: 1rem;
-}
-
-.elements-panel {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-.element-item {
-  width: 100%;
-  padding: 1rem;
-  padding: 8px;
-  border: 1px solid #7cb342;
-}
-
-.火 {
-  color: #ff6b6b;
-}
-
-.constitutions-panel {
-  margin-top: 2rem;
-  padding: 1rem;
-  border: 1px dashed #616161;
-}
-
-.constitutions-list {
+.element-buttons {
+  display: flex;
   flex-direction: column;
-  flex-wrap: nowrap;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.radar-chart {
+  flex: 1;
+  height: 400px;
+}
+
+.element-description {
+  margin-top: 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #666;
+}
+
+.equipment-container {
   display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.equip-left,
+.equip-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
-.constitution-item {
-  display: inline-block;
-  white-space: nowrap;
-  padding: 8px 12px;
-  border: 1px solid #7cb342;
-  border-radius: 4px;
-  background-color: #f5f5f5;
-  font-size: 14px;
-  color: #333;
-}
-
-.passive-skills-panel {
-  margin-top: 2rem;
-  padding: 1rem;
-  border: 1px dashed #616161;
-}
-
-.passive-skills-list {
+.element-buttons {
+  margin-top: 20px;
   display: flex;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.passive-skill-item {
-  display: inline-block;
-  white-space: nowrap;
-  padding: 8px 12px;
-  border: 1px solid #7cb342;
-  border-radius: 4px;
-  background-color: #f5f5f5;
-  font-size: 14px;
-  color: #333;
-  cursor: pointer;
-  transition:
-    background-color 0.3s,
-    color 0.3s;
+::v-deep(.el-button) {
+  min-width: 100px;
+  justify-content: center;
+  margin-left: 0px;
 }
 
-.passive-skill-item:hover {
-  background-color: #7cb342;
-  color: #fff;
+.left-panel-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* 或者写成 height: 800px; 根据你页面结构调整 */
+}
+
+.constitution-container {
+  display: flex;
+  flex-wrap: wrap; /* 使项目换行 */
+  gap: 10px; /* 每个项目之间的间隔 */
+  flex: 2;
+  overflow: hidden;
+}
+
+.skill-panel {
+  flex: 2;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.scrollable-panel .el-tabs__content {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px; /* 方便滚动条不压住内容 */
+}
+
+.constitution-item {
+  flex: 1 0 21%; /* 每个卡片的宽度，保持一定的比例，21% 是为了留出一些间隔 */
+  max-width: 100%; /* 最小宽度，以确保卡片不会过于拥挤 */
+  max-height: 50px;
+  box-sizing: border-box; /* 确保 padding 不影响宽度计算 */
+}
+
+.constitution-card {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  text-align: center;
+}
+
+.constitution-card p {
+  font-size: 12px;
+  color: #666;
+  margin: 0;
+  word-wrap: break-word; /* 确保文本不超出卡片区域 */
+}
+
+.equipment-panel {
+  flex: 1;
+  overflow: hidden;
 }
 </style>

@@ -61,7 +61,7 @@ export const ShopList: (Shop & {
       id: item.id,
       name: itemInfo.name,
       icon: itemInfo.icon,
-      price: itemInfo.value, // ✅ 从 ItemDB 里取
+      price: itemInfo.value,
       amount: item.amount,
       desc: itemInfo.desc,
     }

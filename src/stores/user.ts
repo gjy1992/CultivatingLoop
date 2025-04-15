@@ -85,6 +85,15 @@ interface ResourcesSystem {
   contribution: number // 宗门贡献
 }
 
+interface Equipments {
+  weapon: string  //衣服
+  armor: string  //武器
+  boots: string   //鞋子
+  artifactAttack: string   //攻击法宝
+  artifactDefense: string   //防御法宝
+  artifactSupport: string   //辅助法宝
+}
+
 export const currencyNameMap: Record<keyof ResourcesSystem, string> = {
   WarehouseLevel: '仓库等级', //仓库等级
   money: '铜币', //铜币 资源默认值为-1，方便在系统未开启的时候不显示
@@ -384,6 +393,7 @@ export { combatMgr } // 导出战斗管理器实例
 interface SkillData {
   name: string // 技能名称
   level: number // 技能等级
+  description: string//描述
 }
 
 type LevelUpRequirement = {
@@ -434,6 +444,14 @@ export const useUserStore = defineStore('user', {
       earthPoints: 0,
       unusedPoints: 5, // 剩余点数
     }),
+    equipments: reactive<Equipments>({
+      weapon: "",
+      armor: "",
+      boots: "",
+      artifactAttack: "",
+      artifactDefense: "",
+      artifactSupport: "",
+    }),
     combat: reactive<CombatAttributes>({
       health_max: 100,
       health_current: 100,
@@ -454,12 +472,13 @@ export const useUserStore = defineStore('user', {
     }),
     timer: 0, // 定时器
     updateInterval: 500, // 更新间隔（毫秒）
-    constitutions: reactive<ConstitutionData[]>([]), //体质
 
     clearedMaps: reactive<string[]>([]), // 通关的地图记录
     currentBattleMap: '', // 当前战斗地图
     //心法和被动技能
     passiveSkills: reactive<Record<string, SkillData>>({}), //被动技能
+    actionSkills: reactive<Record<string, SkillData>>({}), //主动技能
+    constitutions: reactive<ConstitutionData[]>([]), //体
 
     // 行动
     actionStateMap: {} as Record<string, ActionState>,
@@ -694,11 +713,11 @@ export const useUserStore = defineStore('user', {
       this.element.unusedPoints = Math.round(
         Math.sqrt(
           this.element.metalPoints +
-            this.element.firePoints +
-            this.element.woodPoints +
-            this.element.waterPoints +
-            this.element.earthPoints +
-            this.element.unusedPoints,
+          this.element.firePoints +
+          this.element.woodPoints +
+          this.element.waterPoints +
+          this.element.earthPoints +
+          this.element.unusedPoints,
         ),
       ) // 增加剩余点数
       this.element.metalPoints = 0
@@ -742,8 +761,8 @@ export const useUserStore = defineStore('user', {
 
       this.actionStateMap = {} // 清空正在处理的技能
       this.tickProgressMap = {} // 每个 action 的进度
-      ;(this.currentActionCategory = ''), // 当前激活的 action（手动用）
-        (this.timer = 0) // 定时器
+        ; (this.currentActionCategory = ''), // 当前激活的 action（手动用）
+          (this.timer = 0) // 定时器
       this.updateInterval = 500
       this.clearedMaps = [] // 通关的地图记录
       this.currentBattleMap = '' // 当前战斗地图
@@ -907,13 +926,13 @@ export const useUserStore = defineStore('user', {
       else return false
     },
 
-    learnPassiveSkills(name: string, level?: number) {
+    learnPassiveSkills(name: string, description: string, level?: number,) {
       if (name === '') return
       if (!level) level = 1
       const skill = passiveSpells[name]
       if (!skill) return
       if (!this.passiveSkills.hasOwnProperty(name))
-        this.passiveSkills[name] = { name: name, level: 0 }
+        this.passiveSkills[name] = { name: name, level: 0, description: description }
       if (skill.apply) {
         while (level-- > 0 && this.passiveSkills[name].level < skill.maxlevel) {
           skill.apply(this, this.passiveSkills[name].level) // 应用技能效果

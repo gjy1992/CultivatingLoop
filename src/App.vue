@@ -74,7 +74,7 @@
           </div>
         </el-card>
 
-        <el-button class="bag-button" @click="showBag = true">🎒 背包</el-button>
+        <el-button class="bag-button" @click="showBag = true">💍 储物戒指</el-button>
       </el-aside>
 
       <Backpack :visible="showBag" @close="showBag = false" />

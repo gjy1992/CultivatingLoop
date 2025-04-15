@@ -20,7 +20,8 @@ export const useBagStore = defineStore('bag', {
       if (item.useImmediately) {
         const user = useUserStore()
         const skillname = ItemDB[id].metadata || ''
-        user.learnPassiveSkills(skillname)
+        const description=ItemDB[id].desc || ''
+        user.learnPassiveSkills(skillname,description)
         return
       }
       const existing = this.items.find((item) => item.id === id)
