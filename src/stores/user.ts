@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { reactive, ref, type Reactive, type Ref } from 'vue'
 import type { CombatAttributes, Buff } from '../modules/buff'
 import type { EnemyData } from '@/modules/enemyData'
-import EnemyList from '@/modules/enemyData'
+import EnemyList, { Param } from '@/modules/enemyData'
 import type { AdventureMapData } from '@/modules/AdvMap'
 import AdventureMapList from '@/modules/AdvMap'
 import constitutionLists, {
@@ -16,12 +16,8 @@ import type { GardenData } from '@/modules/gardenModule'
 import { useBagStore } from './bag'
 import ActionsMap, { type ActionState, type SubAction } from '@/modules/actions'
 import { useLogStore } from './log' // 路径根据你项目结构调整
-
-const Param = {
-  Q0: 20, // 炼体境第一层基础值（建议100~500）
-  a: 3.45, //大境跃迁系数（建议0.6~1.2）
-  b: 0.13, //小境递增斜率（建议0.15~0.3）
-}
+import type { KongFuData } from '@/modules/kongfu'
+import KongFuList from '@/modules/kongfu'
 
 const GammaCoef = function (R: number, r: number) {
   return 1 + 0.1 * Math.sin((3 * (R + r)) / 17)
@@ -41,9 +37,6 @@ interface QiSystem {
   autoGainPerSec: number // 自动挂机速率（根据灵根计算）
 }
 
-//五行灵根系统
-type ElementType = 'metal' | 'wood' | 'water' | 'fire' | 'earth'
-
 interface ElementSystem {
   // 各灵根分配点数
   metalPoints: number
@@ -53,6 +46,9 @@ interface ElementSystem {
   earthPoints: number
   unusedPoints: number // 剩余点数
 }
+
+//五行灵根系统
+export type ElementType = keyof ElementSystem
 
 // 实时战斗属性
 interface BattleAttributes {
@@ -65,6 +61,7 @@ interface BattleAttributes {
   // 掉落
   drops: string[] // 掉落物品
   dropProbs: number[] //掉落物品概率
+  kongfu: KongFuData[] // 技能状态
   // 行动条进度
   actionBar: Ref<number> // 行动条进度（0-5）
   // 友方或敌方
@@ -173,40 +170,74 @@ class BattleSystem {
     }
   }
   executeAction(unit: BattleAttributes) {
+    // 选择技能
+    console.log(unit)
+    const skills = unit.kongfu.filter((a) => a.cooldown <= 0) // 选择技能
+    let skill: KongFuData = { name: '普通攻击', cooldown: 0, level: 1 } // 默认技能
+    if (skills.length > 0) {
+      skill = skills[Math.floor(Math.random() * skills.length)] // 随机选择技能
+    }
+    const skillData = KongFuList[skill.name] // 获取技能数据
     // 选择目标
     let targets: BattleAttributes[] = []
-    if (unit.ally) {
-      targets = [this.enemies[Math.floor(Math.random() * this.enemies.length)]] // 随机选择敌方目标
+    if (skillData.target == 'self') {
+      targets = [unit] // 自己
     } else {
-      targets = [this.allies[Math.floor(Math.random() * this.allies.length)]] // 随机选择友方目标
+      let targetArr = this.enemies
+      if (
+        (unit.ally && skillData.target == 'ally') ||
+        (!unit.ally && skillData.target == 'enemy')
+      ) {
+        targetArr = this.allies
+      }
+      if (skillData.targetNumber == 'all' || skillData.targetNumber >= targetArr.length) {
+        targets = targetArr // 全体
+      } else {
+        let targetIdxs: number[] = []
+        for (let i = 0; i < targetArr.length; i++) {
+          targetIdxs.push(i)
+        }
+        targetIdxs = targetIdxs.sort(() => Math.random() - 0.5) // 随机排序
+        for (let i = 0; i < skillData.targetNumber; i++) {
+          targets.push(targetArr[targetIdxs[i]]) // 随机选择敌人
+        }
+      }
     }
+    // 计算技能冷却
+    skill.cooldown = skillData.cooldown // 设置技能冷却
     // 执行技能或攻击逻辑
     let tnames: string[] = []
     targets.forEach((a) => tnames.push(a.metadata.name))
     combatMgr.AddLog('执行行动:', unit.metadata.name, '对', tnames.join(' ')) // 添加日志
-    // skill to do
-    // 先普通攻击
     targets.forEach((target) => {
       // 计算命中率
       const hit = Math.random() < unit.current.hitRate // 命中
       const dodge = Math.random() < target.current.dodgeRate // 闪避
       const crit = Math.random() < unit.current.critRate // 暴击
       if (hit && !dodge) {
-        // TODO 增加技能，并且增加技能攻击属性（物理or魔法，魔法的话分五行属性）
-        // 暂时按物理写
+        let atk =
+          skillData.dmgType == 'physical'
+            ? unit.current.attack_physical
+            : unit.current.attack_magical
+        let def =
+          skillData.dmgType == 'physical'
+            ? target.current.defense_physical
+            : target.current.defense_magical
+        // TODO 增加元素属性
         let damage =
-          unit.current.attack_physical *
+          atk *
           Math.pow(
-            1.15,
-            (5 * Math.log(unit.current.attack_physical / target.current.defense_physical)) /
-              Math.log(2 / 1.2),
+            Param.minor_bonus,
+            (5 * Math.log(atk / def)) / Math.log(Param.HP_major_coef / Param.battle_time_coef),
           )
+        damage *= skillData.damage + skillData.levelbonus * (skill.level - 1) // 计算伤害
         if (crit) {
           damage *= unit.current.critDamage // 计算暴击伤害
         }
+        damage = Math.round(damage) // 四舍五入
         const 无敌 = target.buffs.find((a) => a.name == '无敌')
         if (无敌 === undefined) target.current.health_current -= damage // 扣除目标生命值
-        combatMgr.AddLog('攻击成功，造成伤害:', damage, 无敌 ? '但是目标无敌' : '')
+        combatMgr.AddLog(skill.name + '成功，造成伤害:', damage, 无敌 ? '但是目标无敌' : '')
       } else if (dodge) {
         combatMgr.AddLog('攻击被闪避')
       } else {
@@ -284,10 +315,21 @@ class AdventureCombat {
     while (totalDiff < difficulty) {
       const enemyName = enemyData[Math.floor(Math.random() * enemyData.length)] // 随机选择敌人
       const enemy = EnemyList[enemyName] // 获取敌人数据
+      const kongfu = enemy.kongfus
+        .map((name: string) => {
+          const data = KongFuList[name]
+          if (!data) {
+            console.warn(`KongFu ${name} not found in KongFuList`)
+            return null
+          }
+          return { name: name, cooldown: 0, level: 1 }
+        })
+        .filter((kf) => kf !== null) as KongFuData[]
       const enemyAttributes: BattleAttributes = {
         original: { ...enemy.attributes },
         current: reactive<CombatAttributes>({ ...enemy.attributes }),
         buffs: reactive<Buff[]>([]), // 增益效果
+        kongfu: kongfu, // 技能状态
         drops: this.currentMap?.drops || [], // 掉落物品
         dropProbs: this.currentMap?.dropProbs || [], // 掉落概率
         actionBar: ref(0), // 行动条进度（0-5）
@@ -310,12 +352,23 @@ class AdventureCombat {
     const enemies = this.generateEnemies(this.currentMap?.enemies || [])
     this.battleSystem = new BattleSystem()
     this.battleSystem.enemies = enemies // 设置敌人列表
+    let kongfu = [{ name: '普通攻击', cooldown: 0, level: 1 }]
+    // 获取玩家功法列表
+    Object.keys(this.player?.actionSkills || {}).map((name) => {
+      const data = KongFuList[name]
+      if (!data) {
+        console.warn(`KongFu ${name} not found in KongFuList`)
+        return null
+      }
+      kongfu.push({ name: name, cooldown: 0, level: this.player?.actionSkills[name].level || 1 })
+    })
     // 设置友方列表
     const player: BattleAttributes = {
       original: playerData,
       current: reactive<CombatAttributes>({ ...playerData }),
       buffs: reactive<Buff[]>([]), // 增益效果
       drops: [], // 玩家没有掉落物品
+      kongfu: kongfu,
       dropProbs: [],
       actionBar: ref(0), // 行动条进度（0-5）
       ally: true, // 玩家是友方
@@ -323,6 +376,7 @@ class AdventureCombat {
         name: name,
         description: '',
         attributes: playerData,
+        kongfus: ['普通攻击'],
         strength: 0,
       },
     }
@@ -569,16 +623,18 @@ export const useUserStore = defineStore('user', {
         this.realmStatus.minorRealm = 1 // 增加小境界
         this.realmStatus.breakthroughAttempts = 0 // 重置突破失败次数
         this.element.unusedPoints += 5 // 增加剩余点数
-        this.combat.health_max *= 2 // 增加最大生命值
-        this.combat.mp_max += 100 // 增加最大蓝量
+        this.combat.health_max *= Param.HP_major_coef // 增加最大生命值
+        this.combat.mp_max += Param.MP_major_add // 增加最大蓝量
         this.combat.health_current = this.combat.health_max // 重置当前生命值
         this.combat.mp_current = this.combat.mp_max // 重置当前蓝量
-        this.combat.health_regenPerSec += this.combat.health_max / 2000
-        this.combat.mp_regenPerSec += 0.5
-        this.combat.attack_physical = Math.round(this.combat.attack_physical * 1.667)
-        this.combat.attack_magical = Math.round(this.combat.attack_magical * 1.667)
-        this.combat.defense_physical = Math.round(this.combat.defense_physical * 1.667)
-        this.combat.defense_magical = Math.round(this.combat.defense_magical * 1.667)
+        this.combat.health_regenPerSec += this.combat.health_max * Param.HP_regen_major_coef
+        this.combat.mp_regenPerSec += Param.MP_regen_major_add
+        this.combat.attack_physical = Math.round(this.combat.attack_physical * Param.ATK_major_coef)
+        this.combat.attack_magical = Math.round(this.combat.attack_magical * Param.ATK_major_coef)
+        this.combat.defense_physical = Math.round(
+          this.combat.defense_physical * Param.DEF_major_coef,
+        )
+        this.combat.defense_magical = Math.round(this.combat.defense_magical * Param.DEF_major_coef)
         return
       }
       // 增加当前境界小境界
@@ -591,16 +647,22 @@ export const useUserStore = defineStore('user', {
           this.realmStatus.minorRealm = 1 // 重置小境界
           this.realmStatus.breakthroughAttempts = 0 // 重置突破失败次数
           this.element.unusedPoints += 5 // 增加剩余点数
-          this.combat.health_max *= 2 // 增加最大生命值
-          this.combat.mp_max += 100 // 增加最大蓝量
+          this.combat.health_max *= Param.HP_major_coef // 增加最大生命值
+          this.combat.mp_max += Param.MP_major_add // 增加最大蓝量
           this.combat.health_current = this.combat.health_max // 重置当前生命值
           this.combat.mp_current = this.combat.mp_max // 重置当前蓝量
-          this.combat.health_regenPerSec += this.combat.health_max / 2000
-          this.combat.mp_regenPerSec += 0.5
-          this.combat.attack_physical = Math.round(this.combat.attack_physical * 1.667)
-          this.combat.attack_magical = Math.round(this.combat.attack_magical * 1.667)
-          this.combat.defense_physical = Math.round(this.combat.defense_physical * 1.667)
-          this.combat.defense_magical = Math.round(this.combat.defense_magical * 1.667)
+          this.combat.health_regenPerSec += this.combat.health_max * Param.HP_regen_major_coef
+          this.combat.mp_regenPerSec += Param.MP_major_add
+          this.combat.attack_physical = Math.round(
+            this.combat.attack_physical * Param.ATK_major_coef,
+          )
+          this.combat.attack_magical = Math.round(this.combat.attack_magical * Param.ATK_major_coef)
+          this.combat.defense_physical = Math.round(
+            this.combat.defense_physical * Param.ATK_major_coef,
+          )
+          this.combat.defense_magical = Math.round(
+            this.combat.defense_magical * Param.ATK_major_coef,
+          )
           //todo，随机获得先天体质
           const c = this.GetRandomConstitution()
           console.log('获得体质：', c)
@@ -618,16 +680,18 @@ export const useUserStore = defineStore('user', {
       } else {
         this.qiSystem.currentQi -= this.realmStatus.requiredQi // 扣除突破所需灵气
         this.element.unusedPoints += 1 // 增加剩余点数
-        this.combat.health_max = Math.round(this.combat.health_max * Math.pow(2, 0.2)) // 增加最大生命值
+        this.combat.health_max = Math.round(this.combat.health_max * Param.HP_minor_coef) // 增加最大生命值
         this.combat.health_current = this.combat.health_max // 重置当前生命值
         this.combat.mp_current = this.combat.mp_max // 重置当前蓝量
-        this.combat.health_regenPerSec += this.combat.health_max / 10000 // 增加生命回复
-        this.combat.attack_physical = Math.round(this.combat.attack_physical * Math.pow(1.667, 0.2))
-        this.combat.attack_magical = Math.round(this.combat.attack_magical * Math.pow(1.667, 0.2))
+        this.combat.health_regenPerSec += this.combat.health_max * Param.HP_regen_minor_coef // 增加生命回复
+        this.combat.mp_regenPerSec += Param.MP_regen_minor_add // 增加蓝量回复
+        this.combat.mp_max += Param.MP_minor_add // 增加最大蓝量
+        this.combat.attack_physical = Math.round(this.combat.attack_physical * Param.ATK_minor_coef)
+        this.combat.attack_magical = Math.round(this.combat.attack_magical * Param.ATK_minor_coef)
         this.combat.defense_physical = Math.round(
-          this.combat.defense_physical * Math.pow(1.667, 0.2),
+          this.combat.defense_physical * Param.DEF_minor_coef,
         )
-        this.combat.defense_magical = Math.round(this.combat.defense_magical * Math.pow(1.667, 0.2))
+        this.combat.defense_magical = Math.round(this.combat.defense_magical * Param.DEF_minor_coef)
       }
       // 计算当前突破所需灵气
       this.calculateRequiredQi()
@@ -643,27 +707,34 @@ export const useUserStore = defineStore('user', {
       }
       switch (key) {
         case 'metalPoints':
-          this.combat.attack_physical = Math.round(this.combat.attack_physical * 1.3) // 增加物理攻击
+          this.combat.attack_physical = Math.round(
+            this.combat.attack_physical * Param.ATK_attr_coef,
+          ) // 增加物理攻击
           this.combat.critDamage += 0.01 //增加爆伤
           break
         case 'firePoints':
-          this.combat.attack_magical = Math.round(this.combat.attack_magical * 1.3) // 增加魔法攻击
+          this.combat.attack_magical = Math.round(this.combat.attack_magical * Param.ATK_attr_coef) // 增加魔法攻击
           this.combat.critDamage += 0.01 //增加爆伤
           break
         case 'waterPoints':
-          this.combat.health_max = Math.round(this.combat.health_max * 1.4)
+          this.combat.health_max = Math.round(this.combat.health_max * Param.HP_attr_coef)
           {
             let bonus = 1
             let ac = this.constitutions.find((a) => a.name == '先天道体')
             if (ac !== undefined) bonus += 0.5 * ac.level
-            this.combat.health_regenPerSec += (this.combat.health_max / 10000) * bonus // 增加生命回复
+            this.combat.health_regenPerSec +=
+              ((this.combat.health_max * Param.HP_regen_minor_coef) / 2) * bonus // 增加生命回复
           }
           break
         case 'woodPoints':
-          this.combat.defense_magical = Math.round(this.combat.defense_magical * 1.3) // 增加魔法防御
+          this.combat.defense_magical = Math.round(
+            this.combat.defense_magical * Param.DEF_attr_coef,
+          ) // 增加魔法防御
           break
         case 'earthPoints':
-          this.combat.defense_physical = Math.round(this.combat.defense_physical * 1.3) // 增加物理防御
+          this.combat.defense_physical = Math.round(
+            this.combat.defense_physical * Param.DEF_attr_coef,
+          ) // 增加物理防御
           break
       }
     },

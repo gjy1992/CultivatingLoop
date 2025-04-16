@@ -38,19 +38,19 @@
             <div ref="chartRef" style="width: 100%; height: 400px"></div>
             <div class="element-buttons">
               <p>剩余点数：{{ player.element.unusedPoints }}</p>
-              <el-button type="success" @click="addElementPoint('metal')">金 +1</el-button>
-              <el-button type="success" @click="addElementPoint('wood')">木 +1</el-button>
-              <el-button type="success" @click="addElementPoint('water')">水 +1</el-button>
-              <el-button type="success" @click="addElementPoint('fire')">火 +1</el-button>
-              <el-button type="success" @click="addElementPoint('earth')">土 +1</el-button>
+              <el-button type="success" @click="addElementPoint('metalPoints')">金 +1</el-button>
+              <el-button type="success" @click="addElementPoint('woodPoints')">木 +1</el-button>
+              <el-button type="success" @click="addElementPoint('waterPoints')">水 +1</el-button>
+              <el-button type="success" @click="addElementPoint('firePoints')">火 +1</el-button>
+              <el-button type="success" @click="addElementPoint('earthPoints')">土 +1</el-button>
             </div>
           </div>
           <div class="element-description">
-            <p>金：影响防御力</p>
-            <p>木：影响生命恢复</p>
-            <p>水：影响灵气恢复</p>
-            <p>火：提升攻击力</p>
-            <p>土：增加灵根潜力</p>
+            <p>金：提升物理攻击</p>
+            <p>木：提升魔法防御</p>
+            <p>水：影响生命和回复速度</p>
+            <p>火：提升魔法攻击</p>
+            <p>土：提升物理防御</p>
           </div>
         </el-card>
       </el-col>
@@ -100,7 +100,7 @@
                     :key="index"
                   >
                     <el-card class="constitution-card">
-                      <p>{{ skill.name }}+{{skill.level}}+{{skill.description}}</p>
+                      <p>{{ skill.name }}+{{ skill.level }}+{{ skill.description }}</p>
                     </el-card>
                   </div>
                 </div>
@@ -113,7 +113,7 @@
                     v-for="(skill, index) in player.passiveSkills"
                     :key="index"
                   >
-                  <p>{{ skill.name }} Lv.{{skill.level}}:{{skill.description}}</p>
+                    <p>{{ skill.name }} Lv.{{ skill.level }}:{{ skill.description }}</p>
                   </div>
                 </div>
               </el-tab-pane>
@@ -126,7 +126,7 @@
                     v-for="(constitution, index) in player.constitutions"
                     :key="index"
                   >
-                  <p>{{ constitution.name }} Lv.{{constitution.level}}</p>
+                    <p>{{ constitution.name }} Lv.{{ constitution.level }}</p>
                   </div>
                 </div>
               </el-tab-pane>
@@ -158,12 +158,16 @@
                 </div>
                 <div>
                   防御法宝:{{
-                    player.equipments.artifactDefense != '' ? player.equipments.artifactDefense : '无'
+                    player.equipments.artifactDefense != ''
+                      ? player.equipments.artifactDefense
+                      : '无'
                   }}
                 </div>
                 <div>
                   辅助法宝:{{
-                    player.equipments.artifactSupport != '' ? player.equipments.artifactSupport : '无'
+                    player.equipments.artifactSupport != ''
+                      ? player.equipments.artifactSupport
+                      : '无'
                   }}
                 </div>
               </div>
@@ -177,7 +181,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import { useUserStore } from '@/stores/user'
+import { useUserStore, type ElementType } from '@/stores/user'
 import * as echarts from 'echarts'
 
 const player = useUserStore()
@@ -186,6 +190,17 @@ const activeTab = ref('active')
 const chartRef = ref<HTMLElement | null>(null)
 let chartInstance: echarts.ECharts | null = null
 
+function getMaxRadarPoints() {
+  const m = Math.max(
+    player.element.metalPoints,
+    player.element.woodPoints,
+    player.element.waterPoints,
+    player.element.firePoints,
+    player.element.earthPoints,
+  )
+  return Math.ceil(m / 5) * 5
+}
+
 function renderRadarChart() {
   if (!chartRef.value) return
 
@@ -193,11 +208,13 @@ function renderRadarChart() {
     chartInstance = echarts.init(chartRef.value)
   }
 
-  const metal = Number(player.element?.metalPoints ?? 0)
-  const wood = Number(player.element?.woodPoints ?? 0)
-  const water = Number(player.element?.waterPoints ?? 0)
-  const fire = Number(player.element?.firePoints ?? 0)
-  const earth = Number(player.element?.earthPoints ?? 0)
+  const metal = Number(player.element.metalPoints)
+  const wood = Number(player.element.woodPoints)
+  const water = Number(player.element.waterPoints)
+  const fire = Number(player.element.firePoints)
+  const earth = Number(player.element.earthPoints)
+
+  const radarSize = getMaxRadarPoints()
 
   const options = {
     tooltip: {
@@ -205,11 +222,11 @@ function renderRadarChart() {
     },
     radar: {
       indicator: [
-        { name: '金', max: 100 },
-        { name: '木', max: 100 },
-        { name: '水', max: 100 },
-        { name: '火', max: 100 },
-        { name: '土', max: 100 },
+        { name: '金', max: radarSize },
+        { name: '木', max: radarSize },
+        { name: '水', max: radarSize },
+        { name: '火', max: radarSize },
+        { name: '土', max: radarSize },
       ],
     },
     series: [
@@ -228,27 +245,10 @@ function renderRadarChart() {
   chartInstance.setOption(options)
 }
 
-function addElementPoint(type: 'metal' | 'wood' | 'water' | 'fire' | 'earth') {
+function addElementPoint(type: ElementType) {
   if (!player.element) return
   if (player.element.unusedPoints <= 0) return
-  switch (type) {
-    case 'metal':
-      player.element.metalPoints++
-      break
-    case 'wood':
-      player.element.woodPoints++
-      break
-    case 'water':
-      player.element.waterPoints++
-      break
-    case 'fire':
-      player.element.firePoints++
-      break
-    case 'earth':
-      player.element.earthPoints++
-      break
-  }
-  player.element.unusedPoints--
+  player.DistributePoints(type)
 }
 
 // 首次挂载时延迟初始化（等待 DOM 渲染）
@@ -261,14 +261,28 @@ onMounted(() => {
 // 自动监听五行属性变化，刷新图表
 watch(
   () => [
-    player.element?.metalPoints,
-    player.element?.woodPoints,
-    player.element?.waterPoints,
-    player.element?.firePoints,
-    player.element?.earthPoints,
+    player.element.metalPoints,
+    player.element.woodPoints,
+    player.element.waterPoints,
+    player.element.firePoints,
+    player.element.earthPoints,
   ],
   () => {
     nextTick(() => {
+      let newRadarSize = getMaxRadarPoints()
+      const options = {
+        radar: {
+          indicator: [
+            { name: '金', max: newRadarSize },
+            { name: '木', max: newRadarSize },
+            { name: '水', max: newRadarSize },
+            { name: '火', max: newRadarSize },
+            { name: '土', max: newRadarSize },
+          ],
+        },
+      }
+
+      chartInstance?.setOption(options)
       renderRadarChart()
     })
   },

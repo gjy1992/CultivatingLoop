@@ -22,18 +22,18 @@ const AdventureMapList: { [key: string]: AdventureMapData } = {
     enemies: ['小怪'],
     drops: ['物品1', '物品2', '物品3'],
     dropProbs: [0.05, 0.02, 0.01],
-    difficulty: 1,
+    difficulty: 25,
     levelNum: 10,
     preaquisition: [], // 前置关卡
   },
   地图2: {
     name: '地图2',
     description: '地图2描述',
-    enemies: ['小怪'],
+    enemies: ['进阶小怪'],
     drops: ['物品4', '物品5', '物品6'],
     dropProbs: [0.05, 0.02, 0.01],
     difficulty: 2,
-    levelNum: 10,
+    levelNum: 30,
     preaquisition: ['地图1'], // 前置关卡
   },
 }
