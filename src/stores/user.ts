@@ -18,6 +18,8 @@ import ActionsMap, { type ActionState, type SubAction } from '@/modules/actions'
 import { useLogStore } from './log' // 路径根据你项目结构调整
 import type { KongFuData } from '@/modules/kongfu'
 import KongFuList from '@/modules/kongfu'
+import { useAppStore } from './app'
+import router from '@/router'
 
 const GammaCoef = function (R: number, r: number) {
   return 1 + 0.1 * Math.sin((3 * (R + r)) / 17)
@@ -171,7 +173,6 @@ class BattleSystem {
   }
   executeAction(unit: BattleAttributes) {
     // 选择技能
-    console.log(unit)
     const skills = unit.kongfu.filter((a) => a.cooldown <= 0) // 选择技能
     let skill: KongFuData = { name: '普通攻击', cooldown: 0, level: 1 } // 默认技能
     if (skills.length > 0) {
@@ -280,7 +281,7 @@ class AdventureCombat {
   battleLog: Reactive<string[]> = [] // 战斗日志
   currentLevel = 0
   player: UserStoreType | null = null
-  onEndCallback?: (result: number) => void = undefined
+  onEndCallback?: (result: number) => void
 
   constructor() {
     this.battleSystem = new BattleSystem()
@@ -304,10 +305,7 @@ class AdventureCombat {
     // 生成敌人列表
     const enemies: BattleAttributes[] = []
     // 生成本关难度，在difficulty±sqrt(difficulty)范围内
-    let difficulty =
-      (this.currentMap?.difficulty || 0) -
-      Math.sqrt(this.currentMap?.difficulty || 0) +
-      Math.floor(Math.random() * 2 * Math.sqrt(this.currentMap?.difficulty || 0)) // 随机难度
+    let difficulty = this.currentMap?.difficulty || 0
     if (difficulty <= 0) difficulty = 1
     this.AddLog('current difficulty', difficulty)
     // 根据难度生成敌人
@@ -408,8 +406,11 @@ class AdventureCombat {
           if (this.currentLevel >= (this.currentMap?.levelNum || 0)) {
             this.player?.clearedMaps.push(this.currentMap?.name || '')
             this.AddLog('地图通关')
-            this.stopBattle() // 停止战斗
             if (this.onEndCallback) this.onEndCallback(1)
+            if (this.currentMap?.effect && this.player) {
+              this.currentMap.effect(this.player, 1)
+            }
+            this.stopBattle() // 停止战斗
           } else {
             this.currentLevel++
             const enemies = this.generateEnemies(this.currentMap?.enemies || [])
@@ -418,8 +419,11 @@ class AdventureCombat {
           }
         } else {
           this.AddLog('战斗失败')
-          this.stopBattle() // 停止战斗
           if (this.onEndCallback) this.onEndCallback(0)
+          if (this.currentMap?.effect && this.player) {
+            this.currentMap.effect(this.player, 0)
+          }
+          this.stopBattle() // 停止战斗
         }
       }
     }
@@ -637,47 +641,55 @@ export const useUserStore = defineStore('user', {
         this.combat.defense_magical = Math.round(this.combat.defense_magical * Param.DEF_major_coef)
         return
       }
-      // 增加当前境界小境界
-      this.realmStatus.minorRealm++
       // 如果小境界大于9，则增加大境界并重置小境界
-      if (this.realmStatus.minorRealm > 9) {
-        let r = this.calcBreakthroughResult()
-        if (r === 1) {
-          this.realmStatus.majorRealm++ // 增加大境界
-          this.realmStatus.minorRealm = 1 // 重置小境界
-          this.realmStatus.breakthroughAttempts = 0 // 重置突破失败次数
-          this.element.unusedPoints += 5 // 增加剩余点数
-          this.combat.health_max *= Param.HP_major_coef // 增加最大生命值
-          this.combat.mp_max += Param.MP_major_add // 增加最大蓝量
-          this.combat.health_current = this.combat.health_max // 重置当前生命值
-          this.combat.mp_current = this.combat.mp_max // 重置当前蓝量
-          this.combat.health_regenPerSec += this.combat.health_max * Param.HP_regen_major_coef
-          this.combat.mp_regenPerSec += Param.MP_major_add
-          this.combat.attack_physical = Math.round(
-            this.combat.attack_physical * Param.ATK_major_coef,
-          )
-          this.combat.attack_magical = Math.round(this.combat.attack_magical * Param.ATK_major_coef)
-          this.combat.defense_physical = Math.round(
-            this.combat.defense_physical * Param.ATK_major_coef,
-          )
-          this.combat.defense_magical = Math.round(
-            this.combat.defense_magical * Param.ATK_major_coef,
-          )
-          //todo，随机获得先天体质
-          const c = this.GetRandomConstitution()
-          console.log('获得体质：', c)
-          this.GetConstitution(c)
-        } else if (r === 0) {
-          this.realmStatus.breakthroughAttempts++ // 增加突破失败次数
-        } else {
-          alert('渡劫失败，你反而跌落了一个境界')
-          if (this.realmStatus.majorRealm > 0) {
-            this.realmStatus.majorRealm-- // 减少大境界
+      if (this.realmStatus.minorRealm >= 9) {
+        if (this.realmStatus.majorRealm <= 3) {
+          // 前三个境界突破不用渡雷劫，刷脸就行
+          let r = this.calcBreakthroughResult()
+          if (r === 1) {
+            this.realmStatus.majorRealm++ // 增加大境界
+            this.realmStatus.minorRealm = 1 // 重置小境界
+            this.realmStatus.breakthroughAttempts = 0 // 重置突破失败次数
+            this.element.unusedPoints += 5 // 增加剩余点数
+            this.combat.health_max *= Param.HP_major_coef // 增加最大生命值
+            this.combat.mp_max += Param.MP_major_add // 增加最大蓝量
+            this.combat.health_current = this.combat.health_max // 重置当前生命值
+            this.combat.mp_current = this.combat.mp_max // 重置当前蓝量
+            this.combat.health_regenPerSec += this.combat.health_max * Param.HP_regen_major_coef
+            this.combat.mp_regenPerSec += Param.MP_major_add
+            this.combat.attack_physical = Math.round(
+              this.combat.attack_physical * Param.ATK_major_coef,
+            )
+            this.combat.attack_magical = Math.round(
+              this.combat.attack_magical * Param.ATK_major_coef,
+            )
+            this.combat.defense_physical = Math.round(
+              this.combat.defense_physical * Param.ATK_major_coef,
+            )
+            this.combat.defense_magical = Math.round(
+              this.combat.defense_magical * Param.ATK_major_coef,
+            )
+          } else if (r === 0) {
+            this.realmStatus.minorRealm = 9
+            this.realmStatus.breakthroughAttempts++ // 增加突破失败次数
+          } else {
+            alert('渡劫失败，你反而跌落了一个境界')
+            this.realmStatus.minorRealm = 8 // 跌落一个小境界
+            // 跌落太多了反而成了赚取五行点的途径emm
+            this.realmStatus.breakthroughAttempts++ // 增加突破失败次数
+            //this.realmStatus.breakthroughAttempts = 0 // 重置突破失败次数
           }
-          this.realmStatus.minorRealm = 1 // 重置小境界
-          this.realmStatus.breakthroughAttempts = 0 // 重置突破失败次数
+        } else {
+          //雷劫
+          const mapname = this.majorRealmsName() + '雷劫'
+          const mapData = AdventureMapList[mapname]
+          this.enterAdvMap(mapData) // 进入雷劫地图
+          useAppStore().activeTab = '/battle' // 切换到冒险界面
+          router.push('/battle') // 跳转到冒险界面
         }
       } else {
+        // 增加当前境界小境界
+        this.realmStatus.minorRealm++
         this.qiSystem.currentQi -= this.realmStatus.requiredQi // 扣除突破所需灵气
         this.element.unusedPoints += 1 // 增加剩余点数
         this.combat.health_max = Math.round(this.combat.health_max * Param.HP_minor_coef) // 增加最大生命值
@@ -696,6 +708,61 @@ export const useUserStore = defineStore('user', {
       // 计算当前突破所需灵气
       this.calculateRequiredQi()
       this.updateActions()
+    },
+    BreakUpAfterBattle(res: number): void {
+      if (res > 0) {
+        // 成功
+        this.realmStatus.majorRealm++ // 增加大境界
+        this.realmStatus.minorRealm = 1 // 重置小境界
+        this.realmStatus.breakthroughAttempts = 0 // 重置突破失败次数
+        this.element.unusedPoints += 5 // 增加剩余点数
+        this.combat.health_max *= Param.HP_major_coef // 增加最大生命值
+        this.combat.mp_max += Param.MP_major_add // 增加最大蓝量
+        this.combat.health_current = this.combat.health_max // 重置当前生命值
+        this.combat.mp_current = this.combat.mp_max // 重置当前蓝量
+        this.combat.health_regenPerSec += this.combat.health_max * Param.HP_regen_major_coef
+        this.combat.mp_regenPerSec += Param.MP_major_add
+        this.combat.attack_physical = Math.round(this.combat.attack_physical * Param.ATK_major_coef)
+        this.combat.attack_magical = Math.round(this.combat.attack_magical * Param.ATK_major_coef)
+        this.combat.defense_physical = Math.round(
+          this.combat.defense_physical * Param.ATK_major_coef,
+        )
+        this.combat.defense_magical = Math.round(this.combat.defense_magical * Param.ATK_major_coef)
+        //todo，随机获得先天体质
+        const c = this.GetRandomConstitution()
+        console.log('获得体质：', c)
+        this.GetConstitution(c)
+      } else {
+        // 失败
+        // 跌落一个大境界
+        this.realmStatus.majorRealm = Math.max(1, this.realmStatus.majorRealm - 1) // 大境界
+        this.realmStatus.minorRealm = 1 // 重置小境界
+        // 扣10属性点
+        let todelete = 10
+        if (this.element.unusedPoints > todelete) {
+          this.element.unusedPoints -= todelete
+          todelete = 0
+        } else {
+          todelete -= this.element.unusedPoints
+          this.element.unusedPoints = 0
+        }
+        if (todelete > 0) {
+          const keys: ElementType[] = [
+            'metalPoints',
+            'woodPoints',
+            'waterPoints',
+            'firePoints',
+            'earthPoints',
+          ]
+          while (todelete > 0) {
+            const randomIndex = Math.floor(Math.random() * keys.length)
+            if (this.element[keys[randomIndex]] > 0) {
+              this.element[keys[randomIndex]]-- // 随机减少一个灵根点数
+              todelete--
+            }
+          }
+        }
+      }
     },
     // 分配灵根点数
     DistributePoints(key: keyof ElementSystem): void {

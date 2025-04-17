@@ -63,7 +63,14 @@ function GenEnemyAttrWithStrenth(strength: number, avePoints?: number): CombatAt
   return res
 }
 
-export { Param, GenEnemyAttrWithStrenth }
+function StrengthCalc(strength: number, avePoints?: number): number {
+  const major = Math.floor(strength / 10)
+  const minor = strength % 10
+  const p = major * 5 + ((major - 1) * 9 + minor - 1) - 15
+  return Math.round(p / 5 + (avePoints || 0))
+}
+
+export { Param, GenEnemyAttrWithStrenth, StrengthCalc }
 
 //for test
 // Expose GenEnemyAttrWithStrenth to the global window object
@@ -86,14 +93,46 @@ const EnemyList: { [key: string]: EnemyData } = {
     description: '小怪中的入门者',
     attributes: GenEnemyAttrWithStrenth(21), // 生成小怪属性
     kongfus: ['普通攻击'], // 小怪功法列表
-    strength: 21, // 小怪强度评估
+    strength: StrengthCalc(21), // 小怪强度评估
   },
   进阶小怪: {
     name: '小怪队长',
     description: '已经是一些小怪的头头了',
     attributes: GenEnemyAttrWithStrenth(23, 2), // 生成小怪属性
     kongfus: ['普通攻击'], // 小怪功法列表
-    strength: 33, // 小怪强度评估
+    strength: StrengthCalc(23, 2), // 小怪强度评估
+  },
+
+  元婴雷劫怪: {
+    name: '元婴雷劫怪',
+    description: '天道历练',
+    attributes: GenEnemyAttrWithStrenth(49, 13), // 生成小怪属性
+    kongfus: ['普通攻击'], // 小怪功法列表
+    strength: StrengthCalc(49, 13), // 小怪强度评估
+  },
+
+  化神雷劫怪: {
+    name: '化神雷劫怪',
+    description: '天道历练',
+    attributes: GenEnemyAttrWithStrenth(59, 16), // 生成小怪属性
+    kongfus: ['普通攻击'], // 小怪功法列表
+    strength: StrengthCalc(59, 16), // 小怪强度评估
+  },
+
+  合体雷劫怪: {
+    name: '合体雷劫怪',
+    description: '天道历练',
+    attributes: GenEnemyAttrWithStrenth(69, 19), // 生成小怪属性
+    kongfus: ['普通攻击'], // 小怪功法列表
+    strength: StrengthCalc(69, 19), // 小怪强度评估
+  },
+
+  渡劫雷劫怪: {
+    name: '渡劫雷劫怪',
+    description: '天道历练',
+    attributes: GenEnemyAttrWithStrenth(79, 22), // 生成小怪属性
+    kongfus: ['普通攻击'], // 小怪功法列表
+    strength: StrengthCalc(79, 22), // 小怪强度评估
   },
 }
 
