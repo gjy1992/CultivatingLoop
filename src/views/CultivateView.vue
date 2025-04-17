@@ -222,11 +222,11 @@ function renderRadarChart() {
     },
     radar: {
       indicator: [
-        { name: '金', max: radarSize },
-        { name: '木', max: radarSize },
-        { name: '水', max: radarSize },
-        { name: '火', max: radarSize },
-        { name: '土', max: radarSize },
+      { name: `金 (${metal}/${radarSize})`, max: radarSize },
+      { name: `木 (${wood}/${radarSize})`, max: radarSize },
+      { name: `水 (${water}/${radarSize})`, max: radarSize },
+      { name: `火 (${fire}/${radarSize})`, max: radarSize },
+      { name: `土 (${earth}/${radarSize})`, max: radarSize },
       ],
     },
     series: [
