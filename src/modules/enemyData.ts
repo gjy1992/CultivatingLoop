@@ -6,10 +6,10 @@ const Param = {
   b: 0.13, //小境递增斜率（建议0.15~0.3）
   HP_major_coef: 1.5,
   HP_minor_coef: Math.pow(1.5, 0.2),
-  ATK_major_coef: 1.25,
-  ATK_minor_coef: Math.pow(1.25, 0.2),
-  DEF_major_coef: 1.25,
-  DEF_minor_coef: Math.pow(1.25, 0.2),
+  ATK_major_coef: 1.36,
+  ATK_minor_coef: Math.pow(1.36, 0.2),
+  DEF_major_coef: 1.36,
+  DEF_minor_coef: Math.pow(1.36, 0.2),
   MP_major_add: 100,
   MP_minor_add: 0,
   HP_regen_major_coef: 1 / 2000,
@@ -19,10 +19,10 @@ const Param = {
 
   ATK_attr_coef: 1.1,
   DEF_attr_coef: 1.1,
-  HP_attr_coef: 1.12,
+  HP_attr_coef: 1.14,
 
   minor_bonus: 1.15, // 小境界加成（建议1.1~1.2）
-  battle_time_coef: 1.2, // 战斗时间系数（建议1.0~1.5）
+  battle_time_coef: 1.1, // 战斗时间系数（建议1.0~1.5）
 }
 
 // strength = 10*major+minor
@@ -50,15 +50,23 @@ function GenEnemyAttrWithStrenth(strength: number, avePoints?: number): CombatAt
     recoveryTime: 60, // 复活时间
   }
   if (avePoints) {
-    res.health_max = Math.round(res.health_max * Math.pow(Param.HP_attr_coef, avePoints))
-    res.health_current = res.health_max
-    res.attack_physical = Math.round(res.attack_physical * Math.pow(Param.ATK_attr_coef, avePoints))
-    res.attack_magical = Math.round(res.attack_magical * Math.pow(Param.ATK_attr_coef, avePoints))
-    res.defense_physical = Math.round(
-      res.defense_physical * Math.pow(Param.DEF_attr_coef, avePoints),
-    )
-    res.defense_magical = Math.round(res.defense_magical * Math.pow(Param.DEF_attr_coef, avePoints))
-    res.health_regenPerSec += res.health_max * Param.HP_regen_minor_coef * avePoints
+    //计算五行加成
+    res.attack_physical += Math.round(
+      res.attack_physical * (Param.ATK_attr_coef-1) * avePoints,
+    ) // 增加物理攻击
+    res.attack_magical += Math.round(res.attack_magical * (Param.ATK_attr_coef-1) * avePoints) // 增加魔法攻击
+    res.critDamage += 0.01 *2* avePoints //增加爆伤
+    res.health_max += Math.round(res.health_max * (Param.HP_attr_coef-1)* avePoints)
+    {
+      const bonus = Math.min(Param.HP_regen_major_coef, Param.HP_regen_minor_coef/2*avePoints)
+      res.health_regenPerSec +=res.health_max*bonus // 增加生命回复
+    }
+    res.defense_physical += Math.round(
+      res.defense_physical * (Param.DEF_attr_coef-1) * avePoints,
+    ) // 增加物理防御
+    res.defense_magical += Math.round(
+      res.defense_magical * (Param.DEF_attr_coef-1) * avePoints,
+    ) // 增加魔法防御
   }
   return res
 }

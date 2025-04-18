@@ -31,12 +31,11 @@ const constitutionLists: { [key: string]: Constitution } = {
     name: '先天道体',
     description: '体内孕育先天灵气的特殊体质，可自动吸收天地精华',
     level: 1,
-    effect: (level: number) => '生命回复速度+' + 50 * level + '%，灵气吸收效率×200%', //50% * level
+    effect: (level: number) => '生命回复速度+' + 25 * level + '%，灵气吸收效率×200%', //50% * level
     canLevelUp: true,
     maxlevel: 9,
     apply: (user, currentLevel) => {
-      user.combat.health_regenPerSec /= 2 + currentLevel - 1
-      user.combat.health_regenPerSec *= 2 + currentLevel
+      user.UpdateCombatAttr()
     },
   },
 
