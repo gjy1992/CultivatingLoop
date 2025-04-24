@@ -111,6 +111,15 @@ const passiveSpells: { [key: string]: Constitution } = {
     effect: () => '学会了打坐',
     unlock: (user: UserStoreType) => false,
   },
+  西方大陆的神秘黑色饮料: {
+    name: '西方大陆的神秘黑色饮料',
+    description: '打工人必不可少的能量饮料',
+    level: 1,
+    maxlevel: 1,
+    canLevelUp: false,
+    effect: () => '打工能赚更多钱了',
+    unlock: (user: UserStoreType) => false,
+  },
   筑基丹: {
     name: '筑基丹',
     description: '突破到筑基必须的丹药',

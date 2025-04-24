@@ -18,61 +18,41 @@ export interface Shop {
 
 export type ShopData = Omit<Shop, 'items'> & { items: { id: string; amount: number }[] }
 
+const initShopData: ShopData[] = [
+  {
+    name: '铜币商店',
+    currency: '铜币',
+    collapsed: false,
+    items: [
+      { id: 'pill_001', amount: 10 },
+      { id: 'equip_001', amount: 1 },
+      { id: 'skill_001', amount: 1 },
+      { id: 'skill_002', amount: 1 },
+    ],
+  },
+  {
+    name: '灵石商店',
+    currency: '下品灵石',
+    collapsed: true,
+    items: [{ id: 'pill_002', amount: 1 }],
+  },
+  {
+    name: '宗门商店',
+    currency: '宗门贡献',
+    collapsed: true,
+    items: [],
+  },
+]
+
 export const useShopStore = defineStore('shop', {
   state: () => ({
-    shopdata: reactive<ShopData[]>([
-      {
-        name: '铜币商店',
-        currency: '铜币',
-        collapsed: false,
-        items: [
-          { id: 'pill_001', amount: 10 },
-          { id: 'equip_001', amount: 1 },
-          { id: 'skill_001', amount: 1 },
-        ],
-      },
-      {
-        name: '灵石商店',
-        currency: '下品灵石',
-        collapsed: true,
-        items: [{ id: 'pill_002', amount: 1 }],
-      },
-      {
-        name: '宗门商店',
-        currency: '宗门贡献',
-        collapsed: true,
-        items: [],
-      },
-    ]),
+    shopdata: reactive<ShopData[]>(JSON.parse(JSON.stringify(initShopData))),
   }),
 
   actions: {
     // reset
     reset() {
-      this.shopdata = reactive<ShopData[]>([
-        {
-          name: '铜币商店',
-          currency: '铜币',
-          collapsed: false,
-          items: [
-            { id: 'pill_001', amount: 10 },
-            { id: 'equip_001', amount: 1 },
-            { id: 'skill_001', amount: 1 },
-          ],
-        },
-        {
-          name: '灵石商店',
-          currency: '下品灵石',
-          collapsed: true,
-          items: [{ id: 'pill_002', amount: 1 }],
-        },
-        {
-          name: '宗门商店',
-          currency: '宗门贡献',
-          collapsed: true,
-          items: [],
-        },
-      ])
+      this.shopdata = reactive<ShopData[]>(JSON.parse(JSON.stringify(initShopData)))
     },
   },
   persist: true,

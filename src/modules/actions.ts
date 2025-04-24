@@ -47,11 +47,15 @@ export const ActionsMap: Record<string, Action> = {
           user.combat.health_current -= 1
         },
         effect: (user) => {
-          user.resources.money += Math.floor(Math.random() * 10 + 10)
+          let money = Math.floor(Math.random() * 10 + 10)
+          if (user.hasPassiveSkills('西方大陆的神秘黑色饮料')) money *= 1.5
+          user.resources.money += money
         },
         disable: (user) => user.combat.health_current <= 1,
         autoEffect: (user) => {
-          user.resources.money += Math.floor(Math.random() * 10 + 10)
+          let money = Math.floor(Math.random() * 10 + 10)
+          if (user.hasPassiveSkills('西方大陆的神秘黑色饮料')) money *= 1.5
+          user.resources.money += money
         },
       },
     ],

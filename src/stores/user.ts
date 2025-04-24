@@ -533,7 +533,7 @@ export const useUserStore = defineStore('user', {
       critDamage: 2, // 暴击伤害倍率
       recoveryTime: 60, // 复活时间
     }),
-    permenantAttr:{
+    permenantAttr: {
       health_max: 0,
       health_current: 0,
       health_regenPerSec: 0,
@@ -549,7 +549,7 @@ export const useUserStore = defineStore('user', {
       dodgeRate: 0, // 闪避率
       critRate: 0, // 暴击率
       critDamage: 0, // 暴击伤害倍率
-    }as CombatAttributes,
+    } as CombatAttributes,
     timer: 0, // 定时器
     updateInterval: 500, // 更新间隔（毫秒）
 
@@ -746,33 +746,44 @@ export const useUserStore = defineStore('user', {
         this.UpdateCombatAttr()
       }
     },
-    UpdateCombatAttr(){
+    UpdateCombatAttr() {
       //计算基础属性
-      this.combat = GenEnemyAttrWithStrenth(10*(this.realmStatus.majorRealm)+this.realmStatus.minorRealm, 0)
+      this.combat = GenEnemyAttrWithStrenth(
+        10 * this.realmStatus.majorRealm + this.realmStatus.minorRealm,
+        0,
+      )
       //console.log(this.combat)
       //计算永久加成
       Object.keys(this.combat).forEach((key) => {
-          this.combat[key as keyof CombatAttributes] += this.permenantAttr[key as keyof CombatAttributes]
-        })
+        this.combat[key as keyof CombatAttributes] +=
+          this.permenantAttr[key as keyof CombatAttributes]
+      })
       //计算五行加成
       this.combat.attack_physical += Math.round(
-        this.combat.attack_physical * (Param.ATK_attr_coef-1) * this.element.metalPoints,
+        this.combat.attack_physical * (Param.ATK_attr_coef - 1) * this.element.metalPoints,
       ) // 增加物理攻击
-      this.combat.attack_magical += Math.round(this.combat.attack_magical * (Param.ATK_attr_coef-1) * this.element.firePoints) // 增加魔法攻击
-      this.combat.critDamage += 0.01 * (this.element.metalPoints+this.element.firePoints) //增加爆伤
-      this.combat.health_max += Math.round(this.combat.health_max * (Param.HP_attr_coef-1)* this.element.waterPoints)
+      this.combat.attack_magical += Math.round(
+        this.combat.attack_magical * (Param.ATK_attr_coef - 1) * this.element.firePoints,
+      ) // 增加魔法攻击
+      this.combat.critDamage += 0.01 * (this.element.metalPoints + this.element.firePoints) //增加爆伤
+      this.combat.health_max += Math.round(
+        this.combat.health_max * (Param.HP_attr_coef - 1) * this.element.waterPoints,
+      )
       {
         let bonus = 1
         let ac = this.constitutions.find((a) => a.name == '先天道体')
         if (ac !== undefined) bonus += 0.25 * ac.level
-        bonus *= Math.min(Param.HP_regen_major_coef, Param.HP_regen_minor_coef/2*this.element.waterPoints)
-        this.combat.health_regenPerSec +=this.combat.health_max*bonus // 增加生命回复
+        bonus *= Math.min(
+          Param.HP_regen_major_coef,
+          (Param.HP_regen_minor_coef / 2) * this.element.waterPoints,
+        )
+        this.combat.health_regenPerSec += this.combat.health_max * bonus // 增加生命回复
       }
       this.combat.defense_physical += Math.round(
-        this.combat.defense_physical * (Param.DEF_attr_coef-1) * this.element.earthPoints,
+        this.combat.defense_physical * (Param.DEF_attr_coef - 1) * this.element.earthPoints,
       ) // 增加物理防御
       this.combat.defense_magical += Math.round(
-        this.combat.defense_magical * (Param.DEF_attr_coef-1) * this.element.woodPoints,
+        this.combat.defense_magical * (Param.DEF_attr_coef - 1) * this.element.woodPoints,
       ) // 增加魔法防御
       // TODO 增加装备属性
     },
@@ -915,6 +926,7 @@ export const useUserStore = defineStore('user', {
       this.combat.critRate = 0.1 // 暴击率
       this.combat.critDamage = 2 // 暴击伤害倍率
       this.combat.recoveryTime = 60 // 复活时间
+      this.UpdateCombatAttr()
 
       this.updateActions() // 更新可用技能
 
