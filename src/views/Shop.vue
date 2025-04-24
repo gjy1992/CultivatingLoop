@@ -15,10 +15,11 @@
           placement="top"
         >
           <div class="item-card">
-            <div class="item-name">{{ item.icon }} {{ item.name }}</div>
+            <div class="item-name">{{ ItemDB[item.id]?.icon }} {{ ItemDB[item.id]?.name }}</div>
             <div class="item-info">
               数量：{{ item.amount }}<br />
-              价格：{{ item.price }} {{ shop.currency }}
+              价格：{{ ItemDB[item.id]?.value }}
+              {{ ResourceNameMap[ItemDB[item.id]?.currencyType] }}
             </div>
             <button class="buy-button" @click="buy(item, shop)">购买</button>
           </div>
@@ -32,50 +33,31 @@
 import { reactive } from 'vue'
 import { ItemDB } from '@/stores/itemsdata/items.ts'
 import type { BaseItem } from '@/stores/itemsdata/items.ts'
-import { ShopList as OriginalShopList } from '@/stores/itemsdata/shopList'
 import type { ResourcesSystem } from '@/stores/user'
-import { useUserStore } from '@/stores/user'
+import { useUserStore, ResourceNameMap } from '@/stores/user'
 import { useBagStore } from '@/stores/bag'
 import { ElMessage } from 'element-plus'
+import { useShopStore, type ShopData } from '@/stores/itemsdata/shopList'
 
 // 注意路径按实际位置调整
-
-interface EnrichedItem extends BaseItem {
-  id: string
-  price: number
-  amount: number
-}
-
-interface EnrichedShop {
-  name: string
-  currency: string
-  currencyType: keyof ResourcesSystem
-  collapsed: boolean
-  items: EnrichedItem[]
-}
-
 const user = useUserStore()
 const bag = useBagStore()
-
-// 将商店数据融合物品数据
-const shopList = reactive<EnrichedShop[]>(
-  OriginalShopList.map((shop) => ({
-    ...shop,
-    items: shop.items.map((item) => ({
-      ...ItemDB[item.id],
-      price: item.price,
-      amount: item.amount,
-    })),
-  })),
-)
+const shop = useShopStore()
+const shopList = shop.shopdata
 
 function toggleShop(index: number) {
   shopList[index].collapsed = !shopList[index].collapsed
 }
 
-function buy(item: EnrichedItem, shop: EnrichedShop) {
-  const cost = item.price
-  const resType = shop.currencyType as keyof typeof user.resources
+function buy(itemdata: { id: string; amount: number }, shop: ShopData) {
+  // 检查物品是否存在
+  if (!ItemDB[itemdata.id]) {
+    ElMessage.error('物品不存在')
+    return
+  }
+  const item = ItemDB[itemdata.id]
+  const cost = item.value
+  const resType = item.currencyType
 
   const current = user.resources[resType]
 
@@ -85,9 +67,9 @@ function buy(item: EnrichedItem, shop: EnrichedShop) {
     // item.amount是商店容量
     bag.addItem(item.id, 1)
     // 购买后减少商店物品数量
-    item.amount -= 1
-    ElMessage.success(`购买成功，获得 ${item.name} x${item.amount}`)
-    if (item.amount <= 0) {
+    itemdata.amount -= 1
+    ElMessage.success(`购买成功，获得 ${item.name}`)
+    if (itemdata.amount <= 0) {
       ElMessage.warning(`${item.name} 已售罄`)
       // 从商店中移除物品
       const index = shop.items.findIndex((i) => i.id === item.id)
@@ -99,7 +81,7 @@ function buy(item: EnrichedItem, shop: EnrichedShop) {
       }
     }
   } else {
-    ElMessage.error(`${shop.currency}不足，无法购买 ${item.name}`)
+    ElMessage.error(`${ResourceNameMap[ItemDB[item.id]?.currencyType]}不足，无法购买 ${item.name}`)
   }
 }
 </script>

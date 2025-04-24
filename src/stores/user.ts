@@ -20,6 +20,7 @@ import type { KongFuData } from '@/modules/kongfu'
 import KongFuList from '@/modules/kongfu'
 import { useAppStore } from './app'
 import router from '@/router'
+import { useShopStore } from './itemsdata/shopList'
 
 const GammaCoef = function (R: number, r: number) {
   return 1 + 0.1 * Math.sin((3 * (R + r)) / 17)
@@ -82,6 +83,19 @@ interface ResourcesSystem {
   midHerbs: number //中级草药，灵气池、宗门任务 存储量为仓库等级*100
   maxHerbs: number //高级草药，炼丹 存储量为仓库等级*10
   contribution: number // 宗门贡献
+}
+
+export const ResourceNameMap: Record<keyof ResourcesSystem, string> = {
+  WarehouseLevel: '仓库等级', //仓库等级
+  money: '铜币', //铜币 资源默认值为-1，方便在系统未开启的时候不显示
+  magicStoneLow: '下品灵石', //下品灵石 无存储量
+  magicStoneMid: '中品灵石', //中品灵石 无存储量
+  magicStoneHigh: '上品灵石', //上品灵石 无存储量
+  magicStoneTop: '极品灵石', //极品灵石 无存储量
+  minHerbs: '普通草药', //普通草药，卖钱 存储量为仓库等级*1000
+  midHerbs: '中级草药', //中级草药，灵气池、宗门任务 存储量为仓库等级*100
+  maxHerbs: '高级草药', //高级草药，炼丹 存储量为仓库等级*10
+  contribution: '宗门贡献', // 宗门贡献
 }
 
 interface Equipments {
@@ -918,6 +932,8 @@ export const useUserStore = defineStore('user', {
       //背包清空
       const bag = useBagStore()
       bag.clearBag() // 清空背包
+
+      useShopStore().reset() // 重置商店
 
       this.$reset() // Pinia 自带的重置方法，用于重置所有状态
       // 刷新页面
