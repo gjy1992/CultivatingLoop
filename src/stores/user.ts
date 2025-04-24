@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { reactive, ref, type Reactive, type Ref } from 'vue'
 import type { CombatAttributes, Buff } from '../modules/buff'
 import type { EnemyData } from '@/modules/enemyData'
-import EnemyList, { Param } from '@/modules/enemyData'
+import EnemyList, { Param, GenEnemyAttrWithStrenth } from '@/modules/enemyData'
 import type { AdventureMapData } from '@/modules/AdvMap'
 import AdventureMapList from '@/modules/AdvMap'
 import constitutionLists, {
@@ -533,6 +533,23 @@ export const useUserStore = defineStore('user', {
       critDamage: 2, // 暴击伤害倍率
       recoveryTime: 60, // 复活时间
     }),
+    permenantAttr:{
+      health_max: 0,
+      health_current: 0,
+      health_regenPerSec: 0,
+      mp_max: 0,
+      mp_current: 0,
+      mp_regenPerSec: 0,
+      attack_physical: 0,
+      attack_magical: 0,
+      defense_physical: 0,
+      defense_magical: 0,
+      speed: 0,
+      hitRate: 0, // 命中率
+      dodgeRate: 0, // 闪避率
+      critRate: 0, // 暴击率
+      critDamage: 0, // 暴击伤害倍率
+    }as CombatAttributes,
     timer: 0, // 定时器
     updateInterval: 500, // 更新间隔（毫秒）
 
@@ -641,18 +658,7 @@ export const useUserStore = defineStore('user', {
         this.realmStatus.minorRealm = 1 // 增加小境界
         this.realmStatus.breakthroughAttempts = 0 // 重置突破失败次数
         this.element.unusedPoints += 5 // 增加剩余点数
-        this.combat.health_max *= Param.HP_major_coef // 增加最大生命值
-        this.combat.mp_max += Param.MP_major_add // 增加最大蓝量
-        this.combat.health_current = this.combat.health_max // 重置当前生命值
-        this.combat.mp_current = this.combat.mp_max // 重置当前蓝量
-        this.combat.health_regenPerSec += this.combat.health_max * Param.HP_regen_major_coef
-        this.combat.mp_regenPerSec += Param.MP_regen_major_add
-        this.combat.attack_physical = Math.round(this.combat.attack_physical * Param.ATK_major_coef)
-        this.combat.attack_magical = Math.round(this.combat.attack_magical * Param.ATK_major_coef)
-        this.combat.defense_physical = Math.round(
-          this.combat.defense_physical * Param.DEF_major_coef,
-        )
-        this.combat.defense_magical = Math.round(this.combat.defense_magical * Param.DEF_major_coef)
+        this.UpdateCombatAttr()
         return
       }
       // 如果小境界大于9，则增加大境界并重置小境界
@@ -665,24 +671,6 @@ export const useUserStore = defineStore('user', {
             this.realmStatus.minorRealm = 1 // 重置小境界
             this.realmStatus.breakthroughAttempts = 0 // 重置突破失败次数
             this.element.unusedPoints += 5 // 增加剩余点数
-            this.combat.health_max *= Param.HP_major_coef // 增加最大生命值
-            this.combat.mp_max += Param.MP_major_add // 增加最大蓝量
-            this.combat.health_current = this.combat.health_max // 重置当前生命值
-            this.combat.mp_current = this.combat.mp_max // 重置当前蓝量
-            this.combat.health_regenPerSec += this.combat.health_max * Param.HP_regen_major_coef
-            this.combat.mp_regenPerSec += Param.MP_major_add
-            this.combat.attack_physical = Math.round(
-              this.combat.attack_physical * Param.ATK_major_coef,
-            )
-            this.combat.attack_magical = Math.round(
-              this.combat.attack_magical * Param.ATK_major_coef,
-            )
-            this.combat.defense_physical = Math.round(
-              this.combat.defense_physical * Param.ATK_major_coef,
-            )
-            this.combat.defense_magical = Math.round(
-              this.combat.defense_magical * Param.ATK_major_coef,
-            )
           } else if (r === 0) {
             this.realmStatus.minorRealm = 9
             this.realmStatus.breakthroughAttempts++ // 增加突破失败次数
@@ -706,19 +694,8 @@ export const useUserStore = defineStore('user', {
         this.realmStatus.minorRealm++
         this.qiSystem.currentQi -= this.realmStatus.requiredQi // 扣除突破所需灵气
         this.element.unusedPoints += 1 // 增加剩余点数
-        this.combat.health_max = Math.round(this.combat.health_max * Param.HP_minor_coef) // 增加最大生命值
-        this.combat.health_current = this.combat.health_max // 重置当前生命值
-        this.combat.mp_current = this.combat.mp_max // 重置当前蓝量
-        this.combat.health_regenPerSec += this.combat.health_max * Param.HP_regen_minor_coef // 增加生命回复
-        this.combat.mp_regenPerSec += Param.MP_regen_minor_add // 增加蓝量回复
-        this.combat.mp_max += Param.MP_minor_add // 增加最大蓝量
-        this.combat.attack_physical = Math.round(this.combat.attack_physical * Param.ATK_minor_coef)
-        this.combat.attack_magical = Math.round(this.combat.attack_magical * Param.ATK_minor_coef)
-        this.combat.defense_physical = Math.round(
-          this.combat.defense_physical * Param.DEF_minor_coef,
-        )
-        this.combat.defense_magical = Math.round(this.combat.defense_magical * Param.DEF_minor_coef)
       }
+      this.UpdateCombatAttr()
       // 计算当前突破所需灵气
       this.calculateRequiredQi()
       this.updateActions()
@@ -730,22 +707,12 @@ export const useUserStore = defineStore('user', {
         this.realmStatus.minorRealm = 1 // 重置小境界
         this.realmStatus.breakthroughAttempts = 0 // 重置突破失败次数
         this.element.unusedPoints += 5 // 增加剩余点数
-        this.combat.health_max *= Param.HP_major_coef // 增加最大生命值
-        this.combat.mp_max += Param.MP_major_add // 增加最大蓝量
-        this.combat.health_current = this.combat.health_max // 重置当前生命值
-        this.combat.mp_current = this.combat.mp_max // 重置当前蓝量
-        this.combat.health_regenPerSec += this.combat.health_max * Param.HP_regen_major_coef
-        this.combat.mp_regenPerSec += Param.MP_major_add
-        this.combat.attack_physical = Math.round(this.combat.attack_physical * Param.ATK_major_coef)
-        this.combat.attack_magical = Math.round(this.combat.attack_magical * Param.ATK_major_coef)
-        this.combat.defense_physical = Math.round(
-          this.combat.defense_physical * Param.ATK_major_coef,
-        )
-        this.combat.defense_magical = Math.round(this.combat.defense_magical * Param.ATK_major_coef)
         //todo，随机获得先天体质
         const c = this.GetRandomConstitution()
         console.log('获得体质：', c)
         this.GetConstitution(c)
+
+        this.UpdateCombatAttr()
       } else {
         // 失败
         // 跌落一个大境界
@@ -776,7 +743,38 @@ export const useUserStore = defineStore('user', {
             }
           }
         }
+        this.UpdateCombatAttr()
       }
+    },
+    UpdateCombatAttr(){
+      //计算基础属性
+      this.combat = GenEnemyAttrWithStrenth(10*(this.realmStatus.majorRealm)+this.realmStatus.minorRealm, 0)
+      //console.log(this.combat)
+      //计算永久加成
+      Object.keys(this.combat).forEach((key) => {
+          this.combat[key as keyof CombatAttributes] += this.permenantAttr[key as keyof CombatAttributes]
+        })
+      //计算五行加成
+      this.combat.attack_physical += Math.round(
+        this.combat.attack_physical * (Param.ATK_attr_coef-1) * this.element.metalPoints,
+      ) // 增加物理攻击
+      this.combat.attack_magical += Math.round(this.combat.attack_magical * (Param.ATK_attr_coef-1) * this.element.firePoints) // 增加魔法攻击
+      this.combat.critDamage += 0.01 * (this.element.metalPoints+this.element.firePoints) //增加爆伤
+      this.combat.health_max += Math.round(this.combat.health_max * (Param.HP_attr_coef-1)* this.element.waterPoints)
+      {
+        let bonus = 1
+        let ac = this.constitutions.find((a) => a.name == '先天道体')
+        if (ac !== undefined) bonus += 0.25 * ac.level
+        bonus *= Math.min(Param.HP_regen_major_coef, Param.HP_regen_minor_coef/2*this.element.waterPoints)
+        this.combat.health_regenPerSec +=this.combat.health_max*bonus // 增加生命回复
+      }
+      this.combat.defense_physical += Math.round(
+        this.combat.defense_physical * (Param.DEF_attr_coef-1) * this.element.earthPoints,
+      ) // 增加物理防御
+      this.combat.defense_magical += Math.round(
+        this.combat.defense_magical * (Param.DEF_attr_coef-1) * this.element.woodPoints,
+      ) // 增加魔法防御
+      // TODO 增加装备属性
     },
     // 分配灵根点数
     DistributePoints(key: keyof ElementSystem): void {
@@ -786,38 +784,39 @@ export const useUserStore = defineStore('user', {
       } else {
         alert('没有剩余点数可以分配！')
       }
-      switch (key) {
-        case 'metalPoints':
-          this.combat.attack_physical = Math.round(
-            this.combat.attack_physical * Param.ATK_attr_coef,
-          ) // 增加物理攻击
-          this.combat.critDamage += 0.01 //增加爆伤
-          break
-        case 'firePoints':
-          this.combat.attack_magical = Math.round(this.combat.attack_magical * Param.ATK_attr_coef) // 增加魔法攻击
-          this.combat.critDamage += 0.01 //增加爆伤
-          break
-        case 'waterPoints':
-          this.combat.health_max = Math.round(this.combat.health_max * Param.HP_attr_coef)
-          {
-            let bonus = 1
-            let ac = this.constitutions.find((a) => a.name == '先天道体')
-            if (ac !== undefined) bonus += 0.5 * ac.level
-            this.combat.health_regenPerSec +=
-              ((this.combat.health_max * Param.HP_regen_minor_coef) / 2) * bonus // 增加生命回复
-          }
-          break
-        case 'woodPoints':
-          this.combat.defense_magical = Math.round(
-            this.combat.defense_magical * Param.DEF_attr_coef,
-          ) // 增加魔法防御
-          break
-        case 'earthPoints':
-          this.combat.defense_physical = Math.round(
-            this.combat.defense_physical * Param.DEF_attr_coef,
-          ) // 增加物理防御
-          break
-      }
+      this.UpdateCombatAttr()
+      // switch (key) {
+      //   case 'metalPoints':
+      //     this.combat.attack_physical = Math.round(
+      //       this.combat.attack_physical * Param.ATK_attr_coef,
+      //     ) // 增加物理攻击
+      //     this.combat.critDamage += 0.01 //增加爆伤
+      //     break
+      //   case 'firePoints':
+      //     this.combat.attack_magical = Math.round(this.combat.attack_magical * Param.ATK_attr_coef) // 增加魔法攻击
+      //     this.combat.critDamage += 0.01 //增加爆伤
+      //     break
+      //   case 'waterPoints':
+      //     this.combat.health_max = Math.round(this.combat.health_max * Param.HP_attr_coef)
+      //     {
+      //       let bonus = 1
+      //       let ac = this.constitutions.find((a) => a.name == '先天道体')
+      //       if (ac !== undefined) bonus += 0.5 * ac.level
+      //       this.combat.health_regenPerSec +=
+      //         ((this.combat.health_max * Param.HP_regen_minor_coef) / 2) * bonus // 增加生命回复
+      //     }
+      //     break
+      //   case 'woodPoints':
+      //     this.combat.defense_magical = Math.round(
+      //       this.combat.defense_magical * Param.DEF_attr_coef,
+      //     ) // 增加魔法防御
+      //     break
+      //   case 'earthPoints':
+      //     this.combat.defense_physical = Math.round(
+      //       this.combat.defense_physical * Param.DEF_attr_coef,
+      //     ) // 增加物理防御
+      //     break
+      // }
     },
     //获得一个随机体质的名称
     GetRandomConstitution() {
