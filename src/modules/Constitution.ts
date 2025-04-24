@@ -9,6 +9,7 @@ interface Constitution {
   effect: (level: number) => string // 体质效果描述
   canLevelUp?: boolean // 是否可以升级（可选）
   unlock?: (user: UserStoreType) => boolean // 解锁条件（可选）
+  canSee?: (user: UserStoreType) => boolean // 出现在选择列表里的条件
   apply?: (user: UserStoreType, currentLevel: number) => void // 应用效果（可选），每升一级调用一次
 }
 

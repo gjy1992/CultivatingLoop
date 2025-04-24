@@ -19,7 +19,7 @@
             <div class="item-info">
               数量：{{ item.amount }}<br />
               价格：{{ ItemDB[item.id]?.value }}
-              {{ ResourceNameMap[ItemDB[item.id]?.currencyType] }}
+              {{ currencyNameMap[ItemDB[item.id]?.currencyType] }}
             </div>
             <button class="buy-button" @click="buy(item, shop)">购买</button>
           </div>
@@ -34,7 +34,7 @@ import { reactive } from 'vue'
 import { ItemDB } from '@/stores/itemsdata/items.ts'
 import type { BaseItem } from '@/stores/itemsdata/items.ts'
 import type { ResourcesSystem } from '@/stores/user'
-import { useUserStore, ResourceNameMap } from '@/stores/user'
+import { useUserStore, currencyNameMap } from '@/stores/user'
 import { useBagStore } from '@/stores/bag'
 import { ElMessage } from 'element-plus'
 import { useShopStore, type ShopData } from '@/stores/itemsdata/shopList'
@@ -81,7 +81,7 @@ function buy(itemdata: { id: string; amount: number }, shop: ShopData) {
       }
     }
   } else {
-    ElMessage.error(`${ResourceNameMap[ItemDB[item.id]?.currencyType]}不足，无法购买 ${item.name}`)
+    ElMessage.error(`${currencyNameMap[ItemDB[item.id]?.currencyType]}不足，无法购买 ${item.name}`)
   }
 }
 </script>

@@ -31,30 +31,52 @@ interface Buff {
   duration: number
   // buff计算优先级（加算为1，乘算为2，锁死为3，先算加算的，再算乘算的，最后算锁死的）
   priority: number
+  source?: string //来源技能
   // effect
   effectFunc?: (attributes: CombatAttributes) => void // buff效果函数
 }
 
 const BuffList: { [key: string]: Buff } = {
   // buff列表
-  buff1: {
+  无敌: {
     name: '无敌',
     description: '处于无敌状态，锁死血量',
-    value: 10,
+    value: 0,
     level: 1,
-    duration: 60,
+    duration: 3,
     priority: 1,
   },
-  buff2: {
+  灼烧: {
     name: '灼烧',
     description: '每秒丢失血量',
-    value: 20,
+    value: 0,
     level: 1,
-    duration: 60,
+    duration: 5,
     priority: 2,
     effectFunc(attributes: CombatAttributes) {
       attributes.health_current = Math.round(
         attributes.health_current - attributes.health_max * 0.01 * this.level,
+      )
+    },
+  },
+  眩晕: {
+    name: '眩晕',
+    description: '无法行动',
+    value: 0,
+    level: 0,
+    duration: 3,
+    priority: 0,
+  },
+  破甲: {
+    name: '破甲',
+    description: '降低目标物理防御',
+    value: 0,
+    level: 1,
+    duration: 5,
+    priority: 2,
+    effectFunc(attributes: CombatAttributes) {
+      attributes.defense_physical = Math.round(
+        attributes.defense_physical - attributes.defense_physical * 0.1 * this.level,
       )
     },
   },

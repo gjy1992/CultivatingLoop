@@ -17,7 +17,7 @@ import { useBagStore } from './bag'
 import ActionsMap, { type ActionState, type SubAction } from '@/modules/actions'
 import { useLogStore } from './log' // 路径根据你项目结构调整
 import type { KongFuData } from '@/modules/kongfu'
-import KongFuList from '@/modules/kongfu'
+import KongFuList, { KongFuReqExp } from '@/modules/kongfu'
 import { useAppStore } from './app'
 import router from '@/router'
 import { useShopStore } from './itemsdata/shopList'
@@ -54,7 +54,7 @@ interface ElementSystem {
 export type ElementType = keyof ElementSystem
 
 // 实时战斗属性
-interface BattleAttributes {
+export interface BattleAttributes {
   // 输入数值
   original: CombatAttributes // 输入数值
   // 实时数值
@@ -83,19 +83,6 @@ interface ResourcesSystem {
   midHerbs: number //中级草药，灵气池、宗门任务 存储量为仓库等级*100
   maxHerbs: number //高级草药，炼丹 存储量为仓库等级*10
   contribution: number // 宗门贡献
-}
-
-export const ResourceNameMap: Record<keyof ResourcesSystem, string> = {
-  WarehouseLevel: '仓库等级', //仓库等级
-  money: '铜币', //铜币 资源默认值为-1，方便在系统未开启的时候不显示
-  magicStoneLow: '下品灵石', //下品灵石 无存储量
-  magicStoneMid: '中品灵石', //中品灵石 无存储量
-  magicStoneHigh: '上品灵石', //上品灵石 无存储量
-  magicStoneTop: '极品灵石', //极品灵石 无存储量
-  minHerbs: '普通草药', //普通草药，卖钱 存储量为仓库等级*1000
-  midHerbs: '中级草药', //中级草药，灵气池、宗门任务 存储量为仓库等级*100
-  maxHerbs: '高级草药', //高级草药，炼丹 存储量为仓库等级*10
-  contribution: '宗门贡献', // 宗门贡献
 }
 
 interface Equipments {
@@ -188,7 +175,7 @@ class BattleSystem {
   executeAction(unit: BattleAttributes) {
     // 选择技能
     const skills = unit.kongfu.filter((a) => a.cooldown <= 0) // 选择技能
-    let skill: KongFuData = { name: '普通攻击', cooldown: 0, level: 1 } // 默认技能
+    let skill: KongFuData = { name: '普通攻击', cooldown: 0, level: 1, exp: 0 } // 默认技能
     if (skills.length > 0) {
       skill = skills[Math.floor(Math.random() * skills.length)] // 随机选择技能
     }
@@ -220,52 +207,99 @@ class BattleSystem {
     }
     // 计算技能冷却
     skill.cooldown = skillData.cooldown // 设置技能冷却
+    // 增加技能经验
+    if (skillData.canLevelUp) {
+      skill.exp++
+      if (skill.exp >= KongFuReqExp(skillData, skill.level)) {
+        skill.level++
+        skill.exp = 0
+      }
+    }
     // 执行技能或攻击逻辑
     let tnames: string[] = []
     targets.forEach((a) => tnames.push(a.metadata.name))
     combatMgr.AddLog('执行行动:', unit.metadata.name, '对', tnames.join(' ')) // 添加日志
-    targets.forEach((target) => {
-      // 计算命中率
-      const hit = Math.random() < unit.current.hitRate // 命中
-      const dodge = Math.random() < target.current.dodgeRate // 闪避
-      const crit = Math.random() < unit.current.critRate // 暴击
-      if (hit && !dodge) {
+    // 先执行技能附加效果
+    if (skillData.extraEffect) {
+      skillData.extraEffect(this.allies, this.enemies, targets)
+    }
+    // 结算伤害
+    if (skillData.targetAttr == 'dmg' || skillData.targetAttr == 'dmg_mp') {
+      targets.forEach((target) => {
+        // 计算命中率
+        const hit = Math.random() < unit.current.hitRate // 命中
+        const dodge = Math.random() < target.current.dodgeRate // 闪避
+        const crit = Math.random() < unit.current.critRate // 暴击
+        if (hit && !dodge) {
+          let atk =
+            skillData.dmgType == 'physical'
+              ? unit.current.attack_physical
+              : unit.current.attack_magical
+          let def =
+            skillData.dmgType == 'physical'
+              ? target.current.defense_physical
+              : target.current.defense_magical
+          // TODO 增加元素属性
+          let damage =
+            atk *
+            Math.pow(
+              Param.minor_bonus,
+              (5 * Math.log(atk / def)) / Math.log(Param.HP_major_coef / Param.battle_time_coef),
+            )
+          damage *= skillData.damage + skillData.levelbonus * (skill.level - 1) // 计算伤害
+          if (crit) {
+            damage *= unit.current.critDamage // 计算暴击伤害
+          }
+          damage = Math.round(damage) // 四舍五入
+          const 无敌 = target.buffs.find((a) => a.name == '无敌')
+          if (无敌 === undefined) {
+            if (skillData.targetAttr == 'dmg')
+              target.current.health_current -= damage // 扣除目标生命值
+            else target.current.mp_current -= damage // 扣除目标魔法值
+          }
+          combatMgr.AddLog(skill.name + '成功，造成伤害:', damage, 无敌 ? '但是目标无敌' : '')
+        } else if (dodge) {
+          combatMgr.AddLog('攻击被闪避')
+        } else {
+          combatMgr.AddLog('攻击未命中')
+        }
+        // 计算目标死亡
+        if (target.current.health_current <= 0) {
+          target.current.health_current = 0 // 设置目标生命值为0
+          combatMgr.AddLog('目标死亡', target.metadata.name) // 添加日志
+          // 执行死亡逻辑
+          this.executeDeath(target)
+        }
+      })
+    } else {
+      // heal
+      targets.forEach((target) => {
+        // 计算命中率
         let atk =
           skillData.dmgType == 'physical'
             ? unit.current.attack_physical
             : unit.current.attack_magical
-        let def =
-          skillData.dmgType == 'physical'
-            ? target.current.defense_physical
-            : target.current.defense_magical
-        // TODO 增加元素属性
-        let damage =
-          atk *
-          Math.pow(
-            Param.minor_bonus,
-            (5 * Math.log(atk / def)) / Math.log(Param.HP_major_coef / Param.battle_time_coef),
-          )
-        damage *= skillData.damage + skillData.levelbonus * (skill.level - 1) // 计算伤害
+
+        let damage = atk * skillData.damage // 计算治疗量
+        const crit = Math.random() < unit.current.critRate // 暴击
         if (crit) {
           damage *= unit.current.critDamage // 计算暴击伤害
         }
         damage = Math.round(damage) // 四舍五入
-        const 无敌 = target.buffs.find((a) => a.name == '无敌')
-        if (无敌 === undefined) target.current.health_current -= damage // 扣除目标生命值
-        combatMgr.AddLog(skill.name + '成功，造成伤害:', damage, 无敌 ? '但是目标无敌' : '')
-      } else if (dodge) {
-        combatMgr.AddLog('攻击被闪避')
-      } else {
-        combatMgr.AddLog('攻击未命中')
-      }
-      // 计算目标死亡
-      if (target.current.health_current <= 0) {
-        target.current.health_current = 0 // 设置目标生命值为0
-        combatMgr.AddLog('目标死亡', target.metadata.name) // 添加日志
-        // 执行死亡逻辑
-        this.executeDeath(target)
-      }
-    })
+        if (skillData.targetAttr == 'heal_hp')
+          target.current.health_current += Math.min(
+            target.current.health_current + damage,
+            target.current.health_max,
+          )
+        // 增加目标生命值
+        else
+          target.current.mp_current = Math.min(
+            target.current.mp_current + damage,
+            target.current.mp_max,
+          ) // 增加目标魔法值
+        combatMgr.AddLog(skill.name + '成功，治疗:', damage)
+      })
+    }
   }
   executeDeath(unit: BattleAttributes) {
     // 执行死亡逻辑
@@ -364,16 +398,13 @@ class AdventureCombat {
     const enemies = this.generateEnemies(this.currentMap?.enemies || [])
     this.battleSystem = new BattleSystem()
     this.battleSystem.enemies = enemies // 设置敌人列表
-    let kongfu = [{ name: '普通攻击', cooldown: 0, level: 1 }]
+    let kongfu: KongFuData[] = [{ name: '普通攻击', cooldown: 0, level: 1, exp: 0 }]
     // 获取玩家功法列表
-    Object.keys(this.player?.actionSkills || {}).map((name) => {
-      const data = KongFuList[name]
-      if (!data) {
-        console.warn(`KongFu ${name} not found in KongFuList`)
-        return null
-      }
-      kongfu.push({ name: name, cooldown: 0, level: this.player?.actionSkills[name].level || 1 })
+    Object.values(this.player?.actionSkills || {}).map((kf) => {
+      kongfu.push(kf)
     })
+    let kongfus = ['普通攻击']
+    kongfus.concat(Object.keys(this.player?.actionSkills || {}))
     // 设置友方列表
     const player: BattleAttributes = {
       original: playerData,
@@ -388,7 +419,7 @@ class AdventureCombat {
         name: name,
         description: '',
         attributes: playerData,
-        kongfus: ['普通攻击'],
+        kongfus: kongfus,
         strength: 0,
       },
     }
@@ -557,7 +588,7 @@ export const useUserStore = defineStore('user', {
     currentBattleMap: '', // 当前战斗地图
     //心法和被动技能
     passiveSkills: reactive<Record<string, SkillData>>({}), //被动技能
-    actionSkills: reactive<Record<string, SkillData>>({}), //主动技能
+    actionSkills: reactive<Record<string, KongFuData>>({}), //主动技能
     constitutions: reactive<ConstitutionData[]>([]), //体
 
     // 行动
