@@ -80,7 +80,7 @@ const KongFuList: { [key: string]: KongFu } = {
     maxKongfuLevel: 10,
     extraEffect(allies, enemies, targets) {
       const buffTemplate = { ...BuffList['灼烧'] }
-      buffTemplate.level = 1
+      buffTemplate.value = 1
       buffTemplate.source = '赤炎焚天诀'
       buffTemplate.duration = 5
       targets.forEach((a) => {
@@ -128,7 +128,6 @@ const KongFuList: { [key: string]: KongFu } = {
     maxKongfuLevel: 12,
     extraEffect(allies, enemies, targets) {
       const buffTemplate = { ...BuffList['眩晕'] }
-      buffTemplate.level = 1
       buffTemplate.source = '玄冰破'
       buffTemplate.duration = 3
       targets.forEach((a) => {

@@ -1,7 +1,7 @@
 // src/stores/user.ts
 import { defineStore } from 'pinia'
 import { reactive, ref, type Reactive, type Ref } from 'vue'
-import type { CombatAttributes, Buff } from '../modules/buff'
+import type { CombatAttributes, Buff, DamageType } from '../modules/buff'
 import type { EnemyData } from '@/modules/enemyData'
 import EnemyList, { Param, GenEnemyAttrWithStrenth } from '@/modules/enemyData'
 import type { AdventureMapData } from '@/modules/AdvMap'
@@ -131,8 +131,8 @@ class BattleSystem {
       if (unit.buffs.length < rawbufflength) {
         unit.current = { ...unit.original } // 重置实时属性
         for (const buff of unit.buffs) {
-          if (buff.effectFunc) {
-            buff.effectFunc(unit.current) // 应用buff效果
+          if (buff.priority > 0 && buff.effectFunc) {
+            buff.effectFunc(unit.current, dt) // 应用buff效果
           }
         }
       }
@@ -250,14 +250,30 @@ class BattleSystem {
           if (crit) {
             damage *= unit.current.critDamage // 计算暴击伤害
           }
-          damage = Math.round(damage) // 四舍五入
-          const 无敌 = target.buffs.find((a) => a.name == '无敌')
-          if (无敌 === undefined) {
-            if (skillData.targetAttr == 'dmg')
-              target.current.health_current -= damage // 扣除目标生命值
-            else target.current.mp_current -= damage // 扣除目标魔法值
+          let dmgData: DamageType = {
+            dmgType: skillData.dmgType,
+            elementType: skillData.elementType,
+            targetAttr: skillData.targetAttr,
+            damage: damage,
           }
-          combatMgr.AddLog(skill.name + '成功，造成伤害:', damage, 无敌 ? '但是目标无敌' : '')
+          // 计算buff效果
+          unit.buffs.forEach((buff) => {
+            if (buff.priority < 0 && buff.postEffectFunc) {
+              buff.postEffectFunc(dmgData) // 应用buff效果
+            }
+          })
+
+          damage = Math.round(dmgData.damage) // 四舍五入
+          if (skillData.targetAttr == 'dmg')
+            target.current.health_current -= damage // 扣除目标生命值
+          else target.current.mp_current -= damage // 扣除目标魔法值
+          combatMgr.AddLog(
+            skill.name + '成功，造成',
+            skillData.targetAttr == 'dmg' ? '生命' : '魔法',
+            '伤害:',
+            damage,
+            '点',
+          )
         } else if (dodge) {
           combatMgr.AddLog('攻击被闪避')
         } else {
@@ -285,6 +301,18 @@ class BattleSystem {
         if (crit) {
           damage *= unit.current.critDamage // 计算暴击伤害
         }
+        let dmgData: DamageType = {
+          dmgType: skillData.dmgType,
+          elementType: skillData.elementType,
+          targetAttr: skillData.targetAttr,
+          damage: damage,
+        }
+        // 计算buff效果
+        unit.buffs.forEach((buff) => {
+          if (buff.priority < 0 && buff.postEffectFunc) {
+            buff.postEffectFunc(dmgData) // 应用buff效果
+          }
+        })
         damage = Math.round(damage) // 四舍五入
         if (skillData.targetAttr == 'heal_hp')
           target.current.health_current += Math.min(
@@ -297,7 +325,12 @@ class BattleSystem {
             target.current.mp_current + damage,
             target.current.mp_max,
           ) // 增加目标魔法值
-        combatMgr.AddLog(skill.name + '成功，治疗:', damage)
+        combatMgr.AddLog(
+          skill.name + '成功，治疗:',
+          skillData.targetAttr == 'heal_hp' ? '生命' : '魔法',
+          damage,
+          '点',
+        )
       })
     }
   }
