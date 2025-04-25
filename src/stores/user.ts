@@ -150,6 +150,8 @@ class BattleSystem {
     // 更新行动条进度
     const allUnits = [...this.allies, ...this.enemies]
     for (const unit of allUnits) {
+      //判断眩晕状态
+      if (unit.buffs.find((buff) => buff.name == '眩晕')) continue // 如果有眩晕状态，则跳过
       unit.actionBar.value += dt * unit.current.speed // 增加行动条进度
     }
     // 排序行动条，友方敌方一起排序

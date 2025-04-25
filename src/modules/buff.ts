@@ -180,7 +180,7 @@ const BuffList: { [key: string]: Buff } = {
     },
   },
   无力: {
-    name: '缓速',
+    name: '无力',
     description: '物理攻击下降20',
     value: 20,
     duration: 5,
